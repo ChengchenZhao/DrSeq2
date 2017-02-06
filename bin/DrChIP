@@ -1,0 +1,246 @@
+#!/usr/bin/python
+# Time-stamp: 2016-06-29
+# Author: Chenchen Zhao
+# Email: 1310780@tongji.edu.cn
+"""
+    <Dr.ChIP: quality control and analysis for Drop-ChIP data>
+    Copyright (C) <2016>  <Chengchen Zhao>
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+# ================================================================================
+# Python Modual
+# ================================================================================
+import os
+import sys
+import time
+import string
+import argparse
+import subprocess
+
+# ================================================================================
+# custom package
+# ================================================================================
+import DrSeq2pipe
+
+### tool function
+from DrSeq2pipe.Utility import *
+### read and generate config file
+from DrSeq2pipe.DrChIP_parse_config import *
+
+# ================================================================================
+# main step
+# ================================================================================
+from DrSeq2pipe.DrChIP_STEP0_intergrate_data import *
+from DrSeq2pipe.DrChIP_STEP1_mapping import *
+from DrSeq2pipe.DrChIP_STEP2_quality_control import *
+from DrSeq2pipe.DrChIP_STEP3_clustering import *
+from DrSeq2pipe.DrChIP_STEP4_summary import *
+
+# ================================================================================
+# Misc functions
+# ================================================================================
+
+#### read options
+
+class DrChIPParser(argparse.ArgumentParser):
+    '''
+    Ex version for argparse(parameter parser) , add raise error function .
+    '''
+    def error(self, message):
+        sys.stderr.write('error: %s\n' % message)
+        self.print_help()
+        sys.exit()
+
+def parse_args():
+    '''
+    Read parameter 
+    '''
+    description = "Dr.ChIP -- a quality control and analysis pipeline for Drop-ChIP data"
+    parser = DrChIPParser(description = description, version = "Dr.ChIP 1.0.0 20160715")
+    sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
+
+    ### generate config file
+    template_parser = sub_parsers.add_parser("gen",  help = "generate a template of config file",
+                                             description = "DrChIP config file generation. Usage: DrChIP gen  -n config_name.conf")
+    template_parser.add_argument("-n","--name", dest="config_name",required = True,help="name of your config file : config_name.conf")
+
+    ### run config file
+    pipe_parser = sub_parsers.add_parser("run", help = "run pipeline with a config file input",
+                                         description = "Run DrChIP pipeline with a config file input")
+    pipe_parser.add_argument("-c","--config", required = True,
+                             help = "specify the config file, -c config_name.conf" )
+    pipe_parser.add_argument("-f","--force_overwrite",dest='fover',  default=False, action='store_true', 
+                             help = "The pipeline will over write output result if the output folder is already exist " )
+    pipe_parser.add_argument("--clean",dest='Clean' , default=False, action='store_true',
+                             help = "remove intermediate result generated during Dr.ChIP analysis,default is NO" )
+    ### simple mode
+    simple_parser = sub_parsers.add_parser("simple", help = "run DrChIP using simple mode",
+                                         description = "(Run DrChIP pipeline using simple mode/command line mode) Usage: DrChIP -1 fastq_1.fastq -2 fastq_2.fastq -b barcode.txt -n outname --maptool bowtie2 -g mm10_refgenes.txt --mapindex /home/user/bowtie2_index")
+    simple_parser.add_argument("-1","--fastq_1", dest = 'fastq_1',required = True,
+                             help = "[required] fastq file 1 of pair-end sequencing, only accept .fastq format" )
+    simple_parser.add_argument("-2","--fastq_2", dest = 'fastq_2',required = True,
+                             help = "[required] fastq file 2 of pair-end sequencing, only accept .fastq format" )
+    simple_parser.add_argument("-b","--barcode_file", dest = 'barcode_file',required = True,
+                             help = "[required] barcode library infomation in txt format" )
+    simple_parser.add_argument("--barcode_file_range_1", dest = 'barcode_file_range_1',required = True,
+                             help = "[required] the barcode location 1 in each line of barcode file" )
+    simple_parser.add_argument("--barcode_file_range_2", dest = 'barcode_file_range_2',required = True,
+                             help = "[required] the barcode location 2 in each line of barcode file" )
+    simple_parser.add_argument("--barcode_range_1", dest = 'barcode_range_1',required = True,
+                             help = "[required] the barcode location in each line of sequencing file 1(fastq_1)" )
+    simple_parser.add_argument("--barcode_range_2", dest = 'barcode_range_2',required = True,
+                             help = "[required] the barcode location in each line of sequencing file 2(fastq_2)" )
+    simple_parser.add_argument("-n","--name", dest="name",required = True,
+                             help="[required] name of you config file and output dir, name only , no extension. The output files will be named like name.pdf, name.txt ... ")
+    simple_parser.add_argument("-g","--gene_annotation",dest='GA', required = True,
+                             help = "[required absolute path if you didn't specific it in template config file] gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
+    simple_parser.add_argument("-s","--species",dest='species', required = True,
+                             help = "The species of the input data. By now, only 'mm' and 'hg' are acceptable. 'mm' : mouse.'hg': human." )
+    simple_parser.add_argument("--maptool",dest='maptool' ,default="bowtie2", 
+                             help = "choose mapping software for alignment, default is bowtie2, by now only bowtie2 is available." )
+    simple_parser.add_argument("--mapindex",dest='mapindex',required = False,
+                             help = "[bowtie2] Index filename prefix (minus trailing .X.bt2). There should be a mm10.bowtie2 folder if use bowtie2. for bowtie2, the index file should named like mm10.1.bt2(see documents for detail)" )
+    simple_parser.add_argument("-p","--thread",dest='P' ,default=8, 
+                             help = "[bowtie2] <int> number of alignment threads to launch (8)" )
+    simple_parser.add_argument("-X","--maxins",dest='X' ,default=1000, 
+                             help = "[bowtie2] <int>  maximum fragment length (1000)" )
+    simple_parser.add_argument("--trim5",dest='trim5' ,default=23, 
+                             help = "[bowtie2] <int>   trim <int> bases from 5'/left end of reads (23)" )
+    simple_parser.add_argument("-f","--force_overwrite",dest='fover',  default=False, action='store_true', 
+                             help = "specify the config file to create output folder , this cmd will rm existing result if set True! " )
+    simple_parser.add_argument("--clean",dest='Clean' , default=False, action='store_true',
+                             help = "remove intermediate result generated during Dr.ChIP,default is No" )
+    simple_parser.add_argument("--cell_cutoff",dest='cell_cutoff' , default=10,
+                             help = "discard the peaks containing cells less than <cell cutoff>" )
+    simple_parser.add_argument("--peak_cutoff",dest='peak_cutoff' , default=10,
+                             help = "discard the cells containing peaks less than <peak cutoff>" )
+
+    args = parser.parse_args()
+    ## generate config file template 
+    if args.sub_command == "gen":
+        NewConf(args.config_name)
+        sys.exit(0)
+
+    ## run Dr.ChIP pipeline with config file input
+    if args.sub_command == "run":
+        if os.path.isfile(args.config):
+            return args
+        else:
+            print ('ERROR : -c input is not a config file\n')
+            print pipe_parser.print_help()
+            sys.exit()
+    
+    ## run Dr.ChIP pipeline with a simple mode, input parameter in command line
+    if args.sub_command == "simple":
+        if args.name.endswith('.conf'):
+            args.name = args.name[:-5]
+        MakeConf(args.fastq_1,args.fastq_2,args.barcode_file,args.barcode_file_range_1,args.barcode_file_range_2,args.barcode_range_1,args.barcode_range_2,args.name,args.GA,args.maptool,args.mapindex,args.P,args.X,args.trim5,args.fover,args.Clean,args.species,args.cell_cutoff,args.peak_cutoff)
+        args.config = args.name + '.conf'
+        return args
+
+# ================================================================================
+# Main function
+# ================================================================================
+
+def main():
+
+    args = parse_args()
+    conf_dict = ReadConf(args.config)
+    ### read raw path of output dir, the startdir will be used when the input file is not in absolute path
+    conf_dict['General']['startdir'] = os.getcwd()+'/'
+
+    ### check output name and dir from input parameter
+    if conf_dict['General']['outname'] == "":
+        print 'your outname cannot be left blank,exit'
+        sys.exit(1)
+    if "." in conf_dict['General']['outname']:
+        oldname = conf_dict['General']['outname']
+        newname = oldname.replace(".","-")
+        conf_dict['General']['outname'] = newname
+        print 'replace outname from %s to %s for latex summary'%(oldname,newname)
+    if conf_dict['General']['outputdirectory'] == "":
+        conf_dict['General']['outputdirectory'] = conf_dict['General']['outname']
+        print 'output directory is blank, use outname as directory name and set output directory in current folder'
+    if "~" in conf_dict['General']['outname']:
+        print 'ERROR: ~ cannot appeared in outname, current outname is %s'%(conf_dict['General']['outname'])
+        sys.exit(1)
+    if "~" in conf_dict['General']['outputdirectory']:
+        print 'ERROR: require absolute path for outputdirectory'
+        sys.exit(1)
+    if not conf_dict['General']['outputdirectory'].endswith('/'):
+        conf_dict['General']['outputdirectory'] += '/'
+    if not conf_dict['General']['outputdirectory'].startswith('/'):
+        conf_dict['General']['outputdirectory'] = conf_dict['General']['startdir'] + conf_dict['General']['outputdirectory']
+    
+    ### creat output dir
+    if os.path.isfile(conf_dict['General']['outputdirectory'].rstrip("/")):
+        print 'ERROR: name of your output dir is exist as a file, cannot create a dir,Dr.ChIP exit'
+        sys.exit(1)
+    elif os.path.isdir(conf_dict['General']['outputdirectory']):
+        if not args.fover:
+            print 'ERROR: name of your output dir is exist as a dir, Dr.ChIP exit because overwrite function is turned off, you can add -f parameter to turn on overwite function'
+            sys.exit(1)
+        else: 
+            print 'name of your output dir is exist as a dir, overwrite is turned on, write output result in existing dir'
+    else:
+        os.system("mkdir %s"%(conf_dict['General']['outputdirectory']))
+    
+    ### move to output dir
+    os.chdir(conf_dict['General']['outputdirectory'])
+    ## cp config file to output folder
+    cmd = 'cp %s .'%(conf_dict['General']['startdir']+args.config)
+    Run(cmd)
+    ### specify the main progress log file
+    logfile = conf_dict['General']['outputdirectory']+'progress_log.txt'
+    ### remove existing log file. 
+    if os.path.isfile(logfile):
+        Run('rm %s'%logfile)
+        
+    ### Rscript location 
+    #CONFIG_TEMPLATE = os.path.join(DrChIP_pipe.__path__[0], "Config/DrChIP_template.conf")
+    conf_dict['rscript'] = os.path.join(DrSeq2pipe.__path__[0], "Rscript/")
+    conf_dict['clean'] = args.Clean
+        
+    ### main step for Dr.ChIP , see individual script for detail note.
+    # preparing step, integrate parameter, prepare for following step
+    t = time.time()
+    Step0IntegrateData(conf_dict,logfile)
+    # main data processing step, including barcode deconvolution, mapping, and QC matrix which is used in next step
+    Step1Mapping(conf_dict,logfile)
+    step1time = time.time() - t
+    Log("[STEP1] running time for barcode deconvolution and mapping: %ss"%(step1time),logfile)
+    # QC step, including bulk RNAseq QC(option), individual cell QC
+    t = time.time()
+    Step2_QC(conf_dict,logfile)
+    step2time = time.time() - t
+    Log("[STEP2] running time for QC: %ss"%(step2time),logfile)
+    # analysis step, including  cell clustering and MDS analysis
+    t = time.time()
+    Step3Clustering(conf_dict,logfile)
+    step3time = time.time() -t
+    Log("[STEP3] running time for clustering: %ss"%(step3time),logfile)
+    # summary step, integrate all QC figure and expression matrix, generate qC report with latex
+    t = time.time()
+    Step4Summary(conf_dict,logfile)
+    step4time = time.time() -t
+    Log("[STEP4] running time for summary: %ss"%(step4time),logfile)
+    
+if __name__== '__main__':
+    try:
+        main()
+
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt Dr.ChIP\n")
+        sys.exit(1)
+

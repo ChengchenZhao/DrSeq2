@@ -1,0 +1,221 @@
+#!/usr/bin/env python
+
+"""Module Description
+
+Copyright (c) 2009 H. Gene Shin <shin@jimmy.harvard.edu>
+
+This code is free software; you can redistribute it and/or modify it
+under the terms of the BSD License (see the file COPYING included with
+the distribution).
+
+@status:  experimental
+@version: $Revision$
+@author:  H. Gene Shin
+@contact: shin@jimmy.harvard.edu
+"""
+
+# ------------------------------------
+# python modules
+# ------------------------------------
+import os
+import sys
+import re
+import logging
+import operator
+import itertools
+from array import array
+from optparse import OptionParser
+
+# ------------------------------------
+# my modules
+# ------------------------------------
+import CEAS.inout as inout
+import CEAS.annotator as annotator
+
+# ------------------------------------
+# constants
+# ------------------------------------
+logging.basicConfig(level=20,
+                    format='%(levelname)-5s @ %(asctime)s: %(message)s ',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    stream=sys.stderr,
+                    filemode="w"
+                    )
+
+# ------------------------------------
+# Misc functions
+# ------------------------------------
+error   = logging.critical        # function alias
+warn    = logging.warning
+debug   = logging.debug
+info    = logging.info
+
+
+def prepare_optparser ():
+    """Prepare optparser object. New options will be added in this
+    function first.
+    
+    """
+    
+    usage = "usage: %prog <-g gdb -b bed> [options]"
+    description = "GCA -- Gene-centered Annotation"
+    
+    optparser = OptionParser(version="%prog 0.1.7 (package version 1.0.2)",description=description,usage=usage,add_help_option=False)
+    optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
+    optparser.add_option("-b","--bed",dest="bed",type="string",
+                         help="BED file of ChIP regions.")
+    optparser.add_option("-g","--gt",dest="gdb",type="string",
+                         help="Gene annotation table. This can be a sqlite3 local db file, BED file or genome version of UCSC. The BED file must have an extension of '.bed'")
+    optparser.add_option("--span", dest="span", type="int",\
+                         help="Span in search of ChIP regions from TSS and TTS, DEFAULT=3000bp", default=3000)
+    optparser.add_option("--name",dest="name",\
+                         help="Experiment name. This will be used to name the output file. If an experiment name is not given, input BED file name will be used instead.")      
+    optparser.add_option("--gn-group",dest="gn_group",\
+                         help="A particular group of genes of interest. If a txt file with one column of gene names (eg RefSeq IDs in case of using a refGene table) is given, gca returns the gene-centered annotation of this particular gene group.", default=None)
+    optparser.add_option("--gname2",dest="name2",\
+                         help="The gene names of --gn-group will be regarded as 'name2.' See the schema of the gene annotation table.", default=False)                         
+    
+    return optparser
+
+
+def opt_validate (optparser):
+    """Validate options from a OptParser object.
+
+    Ret: Validated options object.
+    """
+    (options,args) = optparser.parse_args()
+    
+    # if gdb not given, print help, either BED or WIG must be given 
+    if not options.gdb or not options.bed:
+        optparser.print_help()
+        sys.exit(1)
+        
+    if not os.path.isfile(options.gdb):
+        error("No such file as '%s'" %options.gdb)
+        sys.exit(1)
+    else:
+        options.Host = None
+        options.User = None
+        options.Db = options.gdb
+        
+    if not os.path.isfile(options.bed):
+        error("No such file as %s" %options.bed)
+        sys.exit(1)
+    
+    # check the sub-group genes
+    if options.gn_group:
+        if not os.path.isfile(options.gn_group):
+            error("No such file as '%s'" %options.gn_group)
+            options.name2 = False
+            sys.exit(1)
+    else:
+        options.name2 = False    
+            
+    if not options.name:
+        options.name=os.path.split(options.bed)[-1].rsplit('.bed',2)[0]
+
+    return options
+
+def filter_chroms(chroms,regex):
+    """Get rid of chromosome names with a user-specified re
+    
+    Parameters:
+    1. chroms: chromosome names
+    2. re: regular expression as a raw string
+    
+    Return:
+    filtered_chrom: chromosome names after filtering
+    
+    """
+    filtered_chroms=[]
+    for chrom in chroms:
+        if not re.search(regex, chrom):
+            filtered_chroms.append(chrom)
+    
+    return filtered_chroms
+    
+    
+def convert_BED2GeneTable(Bed):
+    """Convert a BED-formatted gene annotation table into a GeneTable object
+    
+    Note that the Bed must strictly follow the BED format not to generate error conversion error.
+    """
+
+    # make a GeneTable object
+    GeneT = inout.GeneTable()
+    GeneT.reset()
+    # set the column names of the gene table
+    GeneT.columns=('name','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts', 'exonEnds')
+    Bed_columns = ('name', 'strand', 'start','end','thickStart','thickEnd', 'blockCount','blockSizes','blockStarts')
+    for chrom in Bed.get_chroms():
+        GeneT[chrom] = {}
+        # copy the columns into the GeneTable
+        for gc, bc in itertools.izip(GeneT.columns, Bed_columns):
+            GeneT[chrom][gc] = Bed[chrom][bc]
+                
+    return GeneT    
+    
+# ------------------------------------
+# Main function
+# ------------------------------------
+
+def main():
+    
+    # read the options and validate them
+    options=opt_validate(prepare_optparser())
+    
+    jobcount=1
+    # if sub-group of genes exist, read them first
+    if options.gn_group:
+        info("#%d read the sub-group of genes to do gene-centered annotation for..." %jobcount)
+        (where,) = inout.read_gene_subsets((options.gn_group,))
+        if options.name2:
+            which = 'name2'
+        else:
+            which = 'name'
+        jobcount += 1
+    else:
+        which = ''
+        where = ()
+    
+    # read the gene annotation table
+    info("#%d read the gene annotation table..." %jobcount)
+    GeneT = inout.GeneTable()
+    try:
+        GeneT.read(Host = options.Host, User= options.User, Db=options.Db, annotation='GeneTable', \
+    	           columns=('name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts', 'exonEnds'), which=which, where=where)
+    except Exception, e:
+        # if 'name2' does not exist and the user wants to use 'name2', error; otherwise, 
+        if re.search(r'column.*name2', str(e)):
+                    error("The gene annotation table does not have 'name2.' Only gene IDs of 'name' can be used to indicate the sub-group of genes given via --gn-group.")
+                    sys.exit(1)
+        else:
+            raise  
+                 
+    GeneT.sort()
+    chroms_GeneT=GeneT.get_chroms()
+    chroms_GeneT=filter_chroms(chroms_GeneT,'_[A-Za-z0-9]*')
+
+    jobcount+=1
+    
+    info("#%d read the ChIP region BED file..." %jobcount)
+    ChIP = inout.Bed()
+    ChIP.read(options.bed)
+    jobcount+=1
+    
+    info("#%d perform gene-centered annotation" %jobcount)
+    GAnnotator=annotator.GeneAnnotator()
+    GAnnotator.annotate(GeneT, ChIP, u=options.span, d=options.span, name2=options.name2)
+    GAnnotator.map.set_name(options.name)
+    GAnnotator.map.write()
+    jobcount+=1
+    
+    info("# ...cong! See %s!" %(options.name+'.xls'))
+    
+
+if __name__=="__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        warn("User interrupts me! ;-) See you!")
+        sys.exit(0)

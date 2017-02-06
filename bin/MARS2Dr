@@ -1,0 +1,13 @@
+#!/bin/bash
+if [ $# -lt 1 ]; then
+    echo "[ERROR]: run MARS2Dr using command like this: MARS2Dr input_MARSseq.sra";
+    exit;
+fi
+
+echo "Transforming MARS-seq data format to the standard input format of DrSeq2..."
+outname=${1%%.*}
+fastq-dump $1 --defline-seq @'$ac.$si $sg + ' --defline-qual '+'
+awk '{if (NR%4==1) print $1;if (NR%4==2 || NR%4==3 || NR%4==0) print $0}' ${outname}.fastq > ${outname}_2.fastq
+awk '{if (NR%4==1) print $0}' ${outname}.fastq | sed "s/ /\n/g" > ${outname}_1.fastq
+
+echo "Data format transformation is done.Check the barcode file : ${outname}_1.fastq and the read file : ${outname}_2.fastq"

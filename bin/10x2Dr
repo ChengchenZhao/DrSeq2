@@ -1,0 +1,14 @@
+#!/bin/bash
+if [ $# -lt 4 ]; then
+    echo "[ERROR]: run 10x2Dr using command like this: 10x2Dr 10x_I1.fastq 10x_I2.fastq 10x_RA.fastq output_name";
+    exit;
+fi
+
+echo "Transforming 10x genomics sequencing data format to the standard input format of DrSeq2..."
+awk '{if (NR%8==1) print $1; if (NR%8==2 || NR%8==3 || NR%8==4) print $0}' $3 > $4_2.fastq
+awk 'NR%8==5 || NR%8==6 || NR%8==7 || NR%8==0' $3 > $4_UMI_tmp.fastq
+paste $1 $2 $4_UMI_tmp.fastq > $4_1_tmp.fastq
+awk '{if (NR%4==1 || NR%4==3) print $1; if(NR%4==2 || NR%4==0) print $0}' $4_1_tmp.fastq | awk 'BEGIN{FS="\t";OFS=""}{$1=$1}1' > $4_1.fastq
+rm $4_UMI_tmp.fastq
+rm $4_1_tmp.fastq
+echo "Data format transformation is done.Check the barcode file : $4_1.fastq and the read file : $4_2.fastq"

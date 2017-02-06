@@ -1,0 +1,189 @@
+#!/usr/bin/python
+# Time-stamp: 2016-12-06
+# Author: Chenchen Zhao
+# Email: 1310780@tongji.edu.cn
+"""
+    <GeMa : generate expression matrix from input fastq file>
+    Copyright (C) <2016>  <Chengchen Zhao>
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+# ------------------------------------
+# Python Modual
+# ------------------------------------
+
+import os
+import sys
+import string
+import time
+from optparse import OptionParser
+# --------------------------
+# custom package
+# --------------------------
+
+### tool function
+from DrSeq2pipe.Utility      import (Get,
+                                   ChangeName,
+                                   RaiseError,
+                                   Log,
+                                   LogError,
+                                   LogCommand,
+                                   Run,
+                                   CreateDirectory,
+                                   SampleDownTransformSam,
+                                   GeneAnnotation,
+                                   ReformBarcodeFastq,
+                                   CombineReads,
+                                   GenerateMatrix
+                                   )
+# --------------------------
+# main 
+# --------------------------
+
+def main():
+    '''
+    generate expression matrix file 
+    main data processing step, including mapping, generate expression matrix and QC matrix which is used in next step
+    for fastq format : 
+        STAR/bowtie2 mapping
+        q30 filter, 
+    for sam format:
+        q30 filter     
+    ''' 
+        ## define the options when we run this programing we needed
+    usage = "usage: %prog -1 <input_fastq_1> -2 input_fastq_2 -m mapping_tool -i mapping_index -o outname -p 8 --qfilter -g gene_annotation"
+    description = "GeMa : main data processing step, including mapping, generate expression matrix"
+    optparser = OptionParser(version="%prog 0.1",description=description,usage=usage,add_help_option=False)
+    optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
+    optparser.add_option("-1","--fastq1",dest="fastq1",type="string",help="input fastq file for single-end sequencing Or fastq_1 file for pair-end sequencing.Sam file also supported.This parameter is required.")
+    optparser.add_option("-2","--fastq2",dest="fastq2",type="string",help="input fastq_2 file for pair-end sequencing.")
+    optparser.add_option("-m","--mapping_tool",dest="mapping_tool",default=1,type="int",help="tool for mapping you choose. 1 strands for STAR, 2 strands for bowtie2")
+    optparser.add_option("-i","--mapping_index",dest="mapping_index",type="string",help="mapping index location.This parameter is required.")
+    optparser.add_option("-o","--outname",dest="outname",type="string",default='out',help="output name.This parameter is required.Default is 'out'.")
+    optparser.add_option("-p","--threads",dest="threads",type="string",default='1',help="number of alignment threads to launch. Default is 1.")
+    
+    (options,args) = optparser.parse_args()
+    fastq1 = options.fastq1
+    fastq2 = options.fastq2
+    mapping_tool = options.mapping_tool
+    mapping_index = options.mapping_index
+    outname = options.outname
+    threads = options.threads
+    ## to avoid the wrong input 
+    if (fastq1==None or mapping_tool==None or mapping_index==None or outname==None or threads==None):
+        print "Please Check your input.\n"
+        optparser.print_help()
+        sys.exit(0)
+    if not os.path.isfile(fastq1):
+        print "Please Check your input file, this file %s is not available.\n"%each_file
+        sys.exit(0)
+    start_dir = os.getcwd()+'/'
+    CreateDirectory(output_name)
+    mapping = start_dir + output_name + '/mapping/'
+    CreateDirectory(mapping)
+    os.chdir(mapping)
+
+    conf_dict = {}
+    conf_dict['General'] = {}
+    conf_dict['General']['outname'] = output_name
+    conf_dict['General']['outputdirectory'] = start_dir + conf_dict['General']['outname']+"/"
+    if fastq1.endswith("fastq"):
+        conf_dict['General']['fastq_1'] = fastq1
+    else:
+        print "Please Check your input file, this file %s is not fastq file.\n"%each_file
+        sys.exit(0)
+    if fastq2!=None :
+        if fastq2.endswith("fastq"):
+            conf_dict['General']['fastq_2'] = fastq2
+        else:
+            print "Please Check your input file, this file %s is not fastq file.\n"%each_file
+            sys.exit(0)
+    conf_dict['General']['gene_annotation'] = gene_annotation
+    
+    conf_dict['Step1_Mapping'] = {}
+    conf_dict['Step1_Mapping']['mapping_software_main'] = mapping_tool
+    conf_dict['Step1_Mapping']['mapindex'] = mapping_index
+    conf_dict['Step1_Mapping']['mapping_p'] = threads
+        
+    logfile = conf_dict['General']['outputdirectory']+'progress_log.txt'
+
+    Log("Step1: alignment",logfile)
+    t= time.time()
+    ### create mapping dir 
+    mapping_dir = conf_dict['General']['outputdirectory'] + 'mapping/'
+    CreateDirectory(mapping_dir)
+    ### check reads file format , start mapping step if format is fastq
+    Log('Now start mapping in %s , all mapping result will be here'%(mapping_dir),logfile)
+    os.chdir(mapping_dir)
+    ## choose mapping tool from STAR and bowtie2 according to config
+    if conf_dict['Step1_Mapping']['mapping_software_main'] == "STAR":
+        Log('user choose STAR as alignment software',logfile)
+        if Get('which STAR')[0].strip() == "":
+            LogError('STAR is not detected in default PATH, make sure you installed STAR and export it into default PATH',logfile)
+        if fastq2==None :
+            mapping_cmd = 'STAR --genomeDir %s --readFilesIn %s --runThreadN %s'%(conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['fastq_1'],conf_dict['Step1_Mapping']['mapping_p'])
+            mapping_cmd2 = 'mv Aligned.out.sam %s.sam'%(conf_dict['General']['outname'])
+        else:
+            mapping_cmd = 'STAR --genomeDir %s --readFilesIn %s %s --runThreadN %s'%(conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['fastq_1'],conf_dict['General']['fastq_2'],conf_dict['Step1_Mapping']['mapping_p'])
+            mapping_cmd2 = 'mv Aligned.out.sam %s.sam'%(conf_dict['General']['outname'])
+        LogCommand(mapping_cmd,logfile)
+        LogCommand(mapping_cmd2,logfile)
+    elif conf_dict['Step1_Mapping']['mapping_software_main'] == "bowtie2":
+        Log('user choose bowtie2 as alignment software',logfile)
+        if Get('which bowtie2')[0].strip() == "":
+            LogError('bowtie2 is not detected in default PATH, make sure you installed bowtie2 and export it into default PATH',logfile)
+        if fastq2==None :
+            mapping_cmd = 'bowtie2 -p %s -x %s -U %s -S %s.sam   2>&1 >>/dev/null |tee -a %s.bowtieout'%(conf_dict['Step1_Mapping']['mapping_p'],conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['fastq_1'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+        else:
+            mapping_cmd = 'bowtie2 -p %s -x %s -1 %s -2 %s -S %s.sam   2>&1 >>/dev/null |tee -a %s.bowtieout'%(conf_dict['Step1_Mapping']['mapping_p'],conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['fastq_1'],conf_dict['General']['fastq_2'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+        LogCommand(mapping_cmd,logfile)
+    else:
+        LogError("alignment tools can only be STAR and bowtie2",logfile)
+    conf_dict['General']['sam'] = mapping_dir + conf_dict['General']['outname'] + '.sam'
+    cmd = "samtools view -Sb %s.sam > %s.bam"%(conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    costtime = time.time() -t
+    Log("time for mapping using %s threads: %s"%(str(threads),costtime),logfile)
+    cmd = "grep '^@' %s.sam > %s_header.sam"%(conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    cmd = "grep -v '^@' %s.sam > %s_noheader.sam"%(conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    max_reads = int(os.popen("wc -l %s_noheader.sam"%conf_dict['General']['outname']).read().split()[0])
+    cmd = "awk -v N=%d -v C=\"`wc -l %s_noheader.sam`\" 'BEGIN{srand();while(n<N){i=int(rand()*C+1);if(!(i in a)){a[i]++;n++}}}NR in a' %s_noheader.sam"%(min(max_reads,5000000),conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    cmd = "cat %s_header.sam %s_sd_noheader.sam > %s_sampledown.sam "%(conf_dict['General']['outname'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    cmd = "rm %s_sd_noheader.sam %s_header.sam > %s_noheader.sam "%(conf_dict['General']['outname'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    conf_dict['General']['sampledownsam'] = mapping_dir + conf_dict['General']['outname'] + '_sampledown.sam'
+    ## reads quality
+    t= time.time()
+    readsqc(conf_dict['General']['sampledownsam'],conf_dict['General']['outname'])
+    Log('generate bulk cell QC measurement with own script, based on sample down reads',logfile)
+    cmd = "%s %s %s"%('Rscript',conf_dict['rscript']+'ATAC_reads_QC.r',conf_dict['General']['outname'])
+    LogCommand(cmd,logfile)
+    costtime = time.time() -t
+    Log("time for Reads-level QC: %s"%(costtime),logfile)
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt me!\n")
+        sys.exit(0)
+
+
+
+

@@ -1,0 +1,418 @@
+#!/usr/bin/env python
+
+"""Module Description
+
+Copyright (c) 2009 H. Gene Shin <shin@jimmy.harvard.edu>
+
+This code is free software; you can redistribute it and/or modify it
+under the terms of the BSD License (see the file COPYING included with
+the distribution).
+
+@status:  experimental
+@version: $Revision$
+@author:  H. Gene Shin
+@contact: shin@jimmy.harvard.edu
+"""
+
+# ------------------------------------
+# python modules
+# ------------------------------------
+import os
+import sys
+import re
+import logging
+from optparse import OptionParser
+import CEAS.inout as inout
+import sqlite3
+from CEAS.inout import MYSQL
+import CEAS.corelib as corelib
+import CEAS.annotator as annotator
+import CEAS.tables as tables
+import CEAS.sampler as sampler
+ 
+# ------------------------------------
+# constants
+# ------------------------------------
+logging.basicConfig(level=20,
+                    format='%(levelname)-5s @ %(asctime)s: %(message)s ',
+                    datefmt='%a, %d %b %Y %H:%M:%S',
+                    stream=sys.stderr,
+                    filemode="w"
+                    )
+
+# ------------------------------------
+# Misc functions
+# ------------------------------------
+error   = logging.critical		# function alias
+warn    = logging.warning
+debug   = logging.debug
+info    = logging.info
+
+# ------------------------------------
+# Main function
+# ------------------------------------
+def main():
+    
+    # read the options and validate them
+    options=opt_validate(prepare_optparser())
+
+    # roi is just dummy parameter
+    roi=None
+    
+    # CEAS run
+    # read the gene annotation table
+    jobcount=1
+    info("#%d read the gene annotation table..." %(jobcount))
+        
+    # read
+    GeneT = inout.GeneTable()
+    # to detect if 'name2' exists in the gene table. 
+    # if not exist, just read the remaining columns.
+    try:
+        GeneT.read(Host = options.Host, User= options.User, Db=options.Db, annotation=options.annotation, \
+                   columns=('name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts', 'exonEnds', 'name2'))
+    except Exception, e:
+        
+        if re.search(r'column.*name2', str(e)):  # if 'name2' does not exist, 'name2' is not ignored.
+            GeneT.read(Host = options.Host, User= options.User, Db=options.Db, annotation=options.annotation, 
+                       columns=('name','chrom','strand','txStart','txEnd','cdsStart','cdsEnd','exonCount','exonStarts', 'exonEnds'))
+        else: raise 
+    
+    GeneT.sort()
+    chroms_GeneT=GeneT.get_chroms()
+    chroms_GeneT=filter_chroms(chroms_GeneT,'_[A-Za-z0-9]*')
+    
+    jobcount+=1
+    
+    # start bg annotation
+    chrom=''
+    chrcount=1
+    
+    # set the summary table
+    GenomeBGS=tables.SummaryGBG(name='GenomeBGS')
+    GenomePieS = tables.PieSummary( name='GenomePieS' )
+    
+    FIRST=True
+    fixedStep = False
+    for line in open(options.wig,'r').xreadlines():
+        if not line or line.startswith('#'): continue
+        # handling the track
+        if re.search(r'track',line): 
+            try:
+                description=re.search(r'description="(\S+)"\s',line).group(1)
+            except AttributeError:
+                pass
+            continue
+        
+        # check if fixedStep or variableStep
+        if re.search(r'fixedStep', line):
+            fixedStep = True
+            step = int(re.search(r'step=(\S+)\s', line).group(1))
+            position = int(re.search(r'start=(\S+)\s', line).group(1))
+                
+        # read the chromosome
+        if re.search(r'chrom=(\S+)\s',line):
+            newchrom=re.search(r'chrom=(\S+)\s',line).group(1)
+            try:
+                newchrom=inout.standard_chroms[newchrom]
+            except KeyError:
+                pass
+            continue
+        
+        l=line.strip().split()
+        
+        # the beginning
+        if chrom=='' and chrom!=newchrom:
+            # if the chromosome is not in gene table, continue
+            chrom=newchrom
+            if chrom in chroms_GeneT: # only if the new chromosome is in the chroms of gene table, a wig object is initiated.
+                info("#%d-%d annotate %s..." %(jobcount,chrcount,chrom))
+                input=inout.Wig()
+                    
+                # if fixedStep, calculate the position from start and step
+                if fixedStep:
+                    row = [position, l[-1]]
+                    position += step
+                else:
+                    row = l
+                       
+                # add the new line to the Wig object
+                input.add_line(chrom, row)
+                chrcount+=1
+        
+        elif chrom!='' and chrom!=newchrom:    # new chromosome
+            if chrom in chroms_GeneT:
+                # do genome BG annotation    
+                Sampler=sampler.GenomeSampler()
+                Annotator=annotator.AnnotatorGBG()
+                GA=Annotator.annotate(Sampler.sample(input,resolution=options.bg_res),GeneT,roi=roi,prom=options.promoter,biprom=options.bipromoter,down=options.downstream,gene_div=(3,5),quantize=False)
+                tempS,tempP=Annotator.summarize(GA,options.promoter,options.bipromoter,options.downstream,options.binsize)
+                GenomeBGS.set_dim(tempS.numprom,tempS.numbiprom,tempS.numdown)
+                GenomeBGS.add_row(chrom,tempS.get_row(chrom))
+
+                tempPieSt = Annotator.obtain_distribution_of_sites_for_genome(GA)
+                tempPieS = tables.PieSummary()
+                tempPieS.import2tb( tempPieSt )
+                GenomePieS.add_row( chrom, tempPieS.get_row( chrom ) )
+
+                ### DEBUG
+                #print GenomeBGS.table
+                #print GenomePieS.table
+                
+                # set chrom to the new chromosome
+            chrom=newchrom
+            if chrom in chroms_GeneT:    # only if the new chromosome is in the chroms of gene table, a wig object is initiated.
+                info("#%d-%d annotate %s..." %(jobcount,chrcount,chrom))
+                input=inout.Wig()
+                    
+                # if fixedStep, calculate the position from start and step
+                if fixedStep:
+                    row = [position, l[-1]]
+                    position += step
+                else:
+                    row = l
+                        
+                # add the line to the Wig object
+                input.add_line(chrom, row)
+                chrcount+=1
+        else:    # in the middle of chromosome
+            if chrom in chroms_GeneT:   # only if the new chromosome is in the chroms of gene table, the wig object is updated.
+                # if fixedStep, calculate the position from start and step
+                if fixedStep:
+                    row = [position, l[-1]]
+                    position += step
+                else:
+                    row = l
+                        
+                # add the line to the Wig object    
+                input.add_line(chrom, row)
+                        
+    # the last chromosome
+    if chrom in chroms_GeneT:
+
+        # do genome bg annotation
+        Sampler=sampler.GenomeSampler()
+        Annotator=annotator.AnnotatorGBG()
+        GA=Annotator.annotate(Sampler.sample(input,resolution=options.bg_res),GeneT,roi=roi,prom=options.promoter,biprom=options.bipromoter,down=options.downstream,gene_div=(3,5),quantize=False)
+        tempS,tempP=Annotator.summarize(GA,options.promoter,options.bipromoter,options.downstream,options.binsize)
+
+        GenomeBGS.set_dim(tempS.numprom,tempS.numbiprom,tempS.numdown)
+        GenomeBGS.add_row(chrom,tempS.get_row(chrom))
+
+        tempPieSt = Annotator.obtain_distribution_of_sites_for_genome(GA)
+        tempPieS = tables.PieSummary()
+        tempPieS.import2tb( tempPieSt )
+        GenomePieS.add_row( chrom, tempPieS.get_row( chrom ) )
+
+        ### DEBUG
+        #print GenomeBGS.table
+        #print GenomePieS.table
+    
+        jobcount+=1
+
+    # get the probability table
+    GenomeBGS.summarize()
+    GenomeBGP=GenomeBGS.get_p()
+    GenomeBGP.set_name('GenomeBGP')
+
+    GenomePieS.summarize()
+    GenomePieP = GenomePieS.get_p()
+    GenomePieP.set_name('GenomePieP')
+
+    #print GenomeBGS
+    #print GenomeBGP
+    #print GenomePieS
+    #print GenomePieP
+
+    # save the GeneTable and GenomeBG summary and probabilities
+    GeneT.savedb(Db=options.ot, annotation='GeneTable', overwrite=True)
+    GenomeBGS.savedb(Db=options.ot, overwrite=True)
+    GenomeBGP.savedb(Db=options.ot, overwrite=True)
+    GenomePieS.savedb(Db=options.ot, overwrite=True)
+    GenomePieP.savedb(Db=options.ot, overwrite=True)
+    
+    info ('#... cong! See sqlite3 db %s!' %(options.ot))
+
+
+# ------------------------------------
+# functions
+# ------------------------------------
+  
+def prepare_optparser ():
+    """Prepare optparser object. New options will be added in this
+    function first.
+    
+    """
+    
+    usage = "usage: %prog <-g gt -w wig> [options]"
+    description = "build_genomeBG, do genome bg annotation and save it for CEAS"
+    
+    optparser = OptionParser(version="%prog 0.1.6 (package version 1.0.2)",description=description,usage=usage,add_help_option=False)
+    optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
+    optparser.add_option("-d","--db",dest="db",type="string",
+                         help="Genome of UCSC (eg hg18). If -d (--db) is not given, this script searches for a local sqlite3 referenced by -g (--gt). WARNING: MySQLdb must be installed to use the tables of UCSC.", default=None)
+    optparser.add_option("-g","--gt",dest="gt",type="string",
+                         help="Name of the gene annotation table (or local sqlite3 file) (eg refGene or knownGene). If -d (--db) is given, build_genomeBG will connect to UCSC and download the specified gene table. Otherwise, build_genomeBG search for a local sqlite3 file with the name.")
+    optparser.add_option("-w","--wig",dest="wig",type="string",
+                         help="WIG file needed to obtain genome locations in BG annotation. VariableStep and fixedWig files are accepted.")         
+    optparser.add_option("-o", "--ot", dest="ot",type="string",\
+                         help="Output sqlite3 db file name. The gene annotation table read from the local sqlite3 file or UCSC DB will be saved in a table named as 'GeneTable' and the computed genome bg annotation will be saved in two tables named as 'GenomeBGS' and 'GenomeBGP. If this option is not given, this script generates a sqlite3 file with the same name as given through -g (--gt). WARNING! When an existing local sqlite3 file is opened and saved as the same name, the tables in the file will be overwritten.", default=None)
+    optparser.add_option("--promoter",dest="promoter",type="int",
+                         help="Maximum promoter size to consider for genome bg annotation. This must be >= 1000bp. Any value less than 1000bp will be set to 1000bp. DEFAULT: 10000bp", default=10000)    
+    optparser.add_option("--bipromoter",dest="bipromoter",type="int",
+                         help="Maximum Bidirectional promoter size to consider for genome bg annotation. This must be >= 1000bp. Any value less than 1000bp will be set to 1000bp. DEFAULT: 20000bp", default=20000)  
+    optparser.add_option("--downstream",dest="downstream",type="int",
+                         help="Maximum immediate downstream size to consider for genome bg annotation. This must be >= 1000bp. Any value less than 1000bp will be set to 1000bp. DEFAULT: 10000bp", default=10000)     
+    optparser.add_option("--binsize",dest="binsize",type="int",\
+                          help="Binsize with which to bin promoter, bidirectional promoter, and immediate downstream sizes. In each bin, the percentage of genome will be calculated. DEFAULT=1000bp", default=1000)
+    
+    return optparser
+
+
+def opt_validate (optparser):
+    """Validate options from a OptParser object.
+
+    Ret: Validated options object.
+    """
+    (options,args) = optparser.parse_args()
+    
+    # input BED file and GDB must be given 
+    if not (options.gt or options.wig):
+        optparser.print_help()
+        sys.exit(1)
+
+    # get gdb lower case
+    if options.db:
+        if MYSQL:
+            options.Host="genome-mysql.cse.ucsc.edu"
+            options.User="genome"
+            options.Db = options.db 
+            options.annotation=os.path.split(options.gt)[-1]
+        else:
+            error('MySQLdb package needs to be installed to use UCSC or a local sqlite3 db file must exist.')
+            error("Check -g (--gdb). No such file or species as '%s'" %options.gt)
+            sys.exit(1)
+    else:
+        if os.path.isfile(options.gt):
+            options.Host=None
+            options.User=None
+            options.Db=options.gt
+            options.annotation='GeneTable'
+        else:
+            error("No such local sqlite3 db file as '%s'" %options.gt)
+            sys.exit(1)
+    
+    # check if the wig file exists
+    if not os.path.isfile(options.wig):
+        error("No such wig file as '%s'" %options.wig)
+        sys.exit(1)
+        
+    # when no output file name is given
+    if not options.ot:
+        options.ot = os.path.split(options.gt)[-1]
+            
+    # bg background resolution is set to 100    
+    options.bg_res=100
+    
+    # set the maximum sizes of promoter, bidirectional promoter and downstream
+    options.promoter=max(1000,options.promoter)
+    options.bipromoter=max(1000,options.bipromoter)
+    options.downstream=max(1000,options.downstream)
+    
+    return options
+
+
+def filter_chroms(chroms,regex):
+    """Get rid of chromosome names with a user-specified re
+    
+    Parameters:
+    1. chroms: chromosome names
+    2. re: regular expression as a raw string
+    
+    Return:
+    filtered_chrom: chromosome names after filtering
+    
+    """
+    filtered_chroms=[]
+    for chrom in chroms:
+        if not re.search(regex, chrom):
+            filtered_chroms.append(chrom)
+    
+    return filtered_chroms
+
+
+###
+### Some functions that were temporarily used for genome background annotation. These functions were
+### modifed and reused by AnnotatorGBG class as its methods.
+def caculate_gbg(gbgtable,maxprom=10000,maxbiprom=20000,maxdown=10000,by=1000):
+    """Calculate the genome bg.
+    
+    """
+    
+    prombin=[1, 500]+range(by,maxprom+by,by)
+    downbin=[1, 500]+range(by,maxdown+by,by)
+    biprombin=[1, 500]+range(by,maxbiprom+by,by)
+    
+    allbp = [0] * (len(prombin)+1)
+    allbd = [0] * (len(downbin)+1)
+    allbbp = [0] * (len(biprombin)+1)
+    for chrom in gbgtable.get_chroms():
+        prom=gbgtable[chrom]['promoter']
+        down=gbgtable[chrom]['downstream']
+        biprom=gbgtable[chrom]['bipromoter']
+        bp=corelib.bin(prom, prombin)
+        bd=corelib.bin(down, downbin) 
+        bbp=corelib.bin(biprom, biprombin)
+        
+        allbp, c = corelib.array_adder(allbp, bp)
+        allbd, c = corelib.array_adder(allbd, bd)
+        allbbp, c = corelib.array_adder(allbbp, bbp)
+        
+    # cumsum from 500 to maxprom (or maxbiprom or maxdown)
+
+    cumbp = corelib.cumsum(allbp[1:-1])
+    cumbd = corelib.cumsum(allbd[1:-1])
+    cumbbp = corelib.cumsum(allbbp[1:-1])
+    
+    return cumbp, cumbbp, cumbd    
+        
+def sum_gbg(binned,max=1000,by=1000):
+    """Sum the counts of bins across chromosomes.
+    
+    Parameters:
+    1. binned: a dictionary of chromosome-wise bins. bins['chr1]=[n1,n2,...nn], where ni is the counts within the ith bin
+    
+    Return:
+    1. binsum: an array of the bin sum across chromosomes
+    
+    """
+    
+    bins=[1, 500]+range(by,max+by,by)
+    binsum=[0]*len(bins)
+    for chrom in bins.keys():
+        binsum=corelib.array_adder(binsum,bins[chrom])  
+    
+    return bins,binsum
+    
+def sum_dict(dict):
+    """Return the sum of the elements in a dictionary
+    
+    Parameters:
+    1. dict: a dictionary. The element referred by a key must be a single number.
+    
+    Return:
+    1. summation: the sum
+    """
+    
+    s=0
+    for key in dict.keys():
+       s+=dict[key]
+       
+    return s     
+    
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        warn("User interrupts me! ;-) See you!")
+        sys.exit(0)

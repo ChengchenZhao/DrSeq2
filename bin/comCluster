@@ -1,0 +1,178 @@
+#!/usr/bin/python
+# Time-stamp: 2016-06-29
+# Author: Chenchen Zhao
+# Email: 1310780@tongji.edu.cn
+"""
+    <comCluster : clustering for multiple expression matrix>
+    Copyright (C) <2016>  <Chengchen Zhao>
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+# ================================================================================
+# Python Modual
+# ================================================================================
+import os
+import sys
+import time
+import DrSeq2pipe
+from optparse import OptionParser
+
+### tool function
+from DrSeq2pipe.Utility import *
+
+def main():
+    '''
+    Conduct cell clustering for multiple expression matrix.
+    ''' 
+    ## define the options when we run this programing we needed
+    usage = "usage: %prog -i <input_expression_files> -o output_name -c clustering_method -d dimension_reduction_method -z highvar_z -p select_pc_var --maxknum --custom_k --custom_d --rdnumber --cell  --seed"
+    description = "comCluster : clustering for multiple expression matrix"
+    optparser = OptionParser(version="%prog 0.1",description=description,usage=usage,add_help_option=False)
+    optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
+    optparser.add_option("-i","--input_files",dest="input_files",type="string",help="input files containing gene expression per cell,multiple files should seperate by comma.This parameter is required.")
+    optparser.add_option("-o","--output_name",dest="output_name",default='output',type="string",help="output name for summary files.This parameter is required.")
+    optparser.add_option("-c","--clustering_method",dest="clustering_method",default=1,type="int",help="Method for cluster cells based on t-SNE output.This parameter is required.Choose from 1(default) ,2 ,3 and 4.1(default) : k-means, use Gap statistics followed by our 'first stable Gap' method to determine k;2 : k-means, but use Gap statistics followed by triditional 'Tibs2001SEmax'  method to determine k (Tibshirani et al (2001));3 : k-means with custom determined k, k value is defined in following parameter 'custom_k', this option is designed for users who know the number of subgroup of the drop-seq sample;4 : (make sure your R enviroment has library 'fpc' installed) Use dbscan as clustering method, the (eps) parameter is defined in following parameter 'custom_d'")
+    optparser.add_option("-d","--dimension_reduction_method",dest="dimension_reduction_method",default=1,type="int",help="Method of dimension reduction,1 strands for 't-SNE',2 strands for 'SIMLR',3 strands for 'ZIFA'.This parameter is required.Default is 1.")
+    optparser.add_option("-z","--highvar_z",dest="highvar_z",default=1.64,type="string",help="Z-score cutoff for highly variable genes selection.")
+    optparser.add_option("-p","--select_pc_var",dest="select_pc_var",default=0.5,type="float",help="Select topN PC until they explain 50% (default is 0.5,  eg. 0.3 for 30% variance) of total variance.")
+    optparser.add_option("--maxknum",dest="maxknum",default='100',type="string",help="Maximum k number for gap statistics, only take effect when clustering_method = 1 or 2.")
+    optparser.add_option("--custom_k",dest="custom_k",default='5',type="string",help="Only take effect when clustering_method = 3, cells will be clustered to N group based on t-SNE result according to user determined k.")
+    optparser.add_option("--custom_d",dest="custom_d",default='2',type="string",help="Only take effect when clustering_method = 4, refer to the parameter 'eps'(Reachability distance, see Ester et al. (1996)) of dbscan. By default we set it to 2 according to the orginal Drop-seq paper, but it varies a lot between differen datasets.")
+    optparser.add_option("--rdnumber",dest="rdnumber",default='1000',type="string",help="Set random number.")
+    optparser.add_option("--cell",dest="cell",type="string",default='col',help="Whether a column or a row strand for a cell.'col' for column and 'row' for row.This parameter is required.")
+    optparser.add_option("--seed",dest="seed",type="string",default='199',help="Set seed to keep your result reproducible ")
+    (options,args) = optparser.parse_args()
+    input_files = options.input_files
+    cell = options.cell
+    output_name = options.output_name
+    clustering_method = options.clustering_method
+    dimension_reduction_method = options.dimension_reduction_method
+    highvar_z = options.highvar_z
+    select_pc_var = options.select_pc_var
+    maxknum = options.maxknum
+    custom_k = options.custom_k
+    custom_d = options.custom_d
+    rdnumber = options.rdnumber
+    seed = options.seed
+    ## to avoid the wrong input 
+    if (input_files==None or cell==None or output_name==None or dimension_reduction_method==None or highvar_z==None or select_pc_var==None or maxknum==None or custom_k==None or custom_d==None or rdnumber==None or seed==None):
+        print "Please Check your input.\n"
+        optparser.print_help()
+        sys.exit(0)
+    for each_file in input_files.split(","):
+        if not os.path.isfile(each_file):
+            print "Please Check your input file, this file %s is not available.\n"%each_file
+            sys.exit(0)
+    
+    
+    start_dir = os.getcwd()+'/'
+    CreateDirectory(output_name)
+    analysisdir = start_dir + output_name + '/analysis/'
+    CreateDirectory(analysisdir)
+    os.chdir(analysisdir)
+    
+    conf_dict = {}
+    conf_dict['General'] = {}
+    conf_dict["Step4_Analysis"] = {}
+    conf_dict['QCplots'] = {}
+    conf_dict['results'] = {}    
+    conf_dict['rscript'] = os.path.join(DrSeq2pipe.__path__[0], "Rscript/")
+    conf_dict['General']['outname'] = output_name
+    conf_dict['General']['outputdirectory'] = start_dir + conf_dict['General']['outname']
+    conf_dict["Step4_Analysis"]["dimensionreduction_method"] = dimension_reduction_method
+    conf_dict['Step4_Analysis']['clusterresult'] = analysisdir + conf_dict['General']['outname']+'_cluster.txt'
+    conf_dict['Step4_Analysis']['highvarz'] = highvar_z
+    conf_dict['Step4_Analysis']['selectpccumvar'] = select_pc_var
+    conf_dict['Step4_Analysis']['rdnumber'] = rdnumber
+    conf_dict['Step4_Analysis']['maxknum'] = maxknum
+    conf_dict['Step4_Analysis']['pctable'] = 1
+    conf_dict['Step4_Analysis']['cortable'] = 1
+    conf_dict['Step4_Analysis']['clustering_method'] = clustering_method
+    conf_dict['Step4_Analysis']['custom_k'] = custom_k
+    conf_dict['Step4_Analysis']['custom_d'] = custom_d
+    conf_dict['Step4_Analysis']['seed'] = seed
+    conf_dict['QCplots']['gapstat'] = analysisdir + conf_dict['General']['outname']+'_Figure10_GapStat.pdf'
+    conf_dict['QCplots']['cluster'] = analysisdir + conf_dict['General']['outname']+'_Figure11_cluster.pdf'
+    conf_dict['QCplots']['silhouette'] = analysisdir + conf_dict['General']['outname']+'_Figure12_silhouetteScore.pdf'
+    conf_dict['results']['cortable'] = analysisdir + conf_dict['General']['outname']+'_correlation_table.txt' 
+    conf_dict['results']['features'] = analysisdir + conf_dict['General']['outname']+'_pctablefeatures_clustercell.txt'
+    logfile = conf_dict['General']['outputdirectory']+'/progress_log.txt'
+    
+    Log('Input is expression table, Step1-alignment, Step2-ExpMat and Step3-QC are skipped.',logfile)
+    Log('Step : Combine gene expression table in to one file for following clustering analysis',logfile)
+    cmd = "Rscript %s %s %s %s"%(conf_dict['rscript']+'DrSeq_combine_files.r',input_files,cell,output_name)
+    LogCommand(cmd,logfile)
+    
+    conf_dict['results']['expmatcc'] = analysisdir + conf_dict['General']['outname']+'_expmat.txt'
+    
+    t = time.time()
+    Log('Step4: analysis',logfile)
+    Log('dimentional reduction + clustering with own script, based on selected STAMP barcodes',logfile)
+
+    if int(conf_dict["Step4_Analysis"]["dimensionreduction_method"]) == 1:
+        conf_dict['results']['pctable'] = analysisdir + conf_dict['General']['outname']+'_pctable.txt'
+        Log("Using PCA&t-SNE to reducted the dimension.",logfile)
+        cmd = "%s %s %s %s %s %s %s %s %s %s %s %s %s %s"%('Rscript',conf_dict['rscript']+'DrSeq_analysis.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['selectpccumvar'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['pctable'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['Step4_Analysis']['seed'])
+        # Rscript analysis.r expmat outname coverGN highvarZ selectPCcutoff rdnumber maxKnum
+        LogCommand(cmd,logfile)
+    elif int(conf_dict["Step4_Analysis"]["dimensionreduction_method"]) == 2:
+        Log("Using SIMLR to reducted the dimension.",logfile)
+        print 'Rscript',conf_dict['rscript']+'DrSeq_SIMLR.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['rscript']
+        cmd = "%s %s %s %s %s %s %s %s %s %s %s %s"%('Rscript',conf_dict['rscript']+'DrSeq_SIMLR.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['rscript'])
+        LogCommand(cmd,logfile)
+    elif int(conf_dict["Step4_Analysis"]["dimensionreduction_method"]) == 3:
+        Log("Run ZIFA",logfile)
+    else:
+        Log("You can only choose the method of Dimentional reduction from t-SNE,SIMLR and ZIFA by now.!",logfile)
+    cmd = '%s %s %s %s'%('Rscript',conf_dict['rscript']+'DrSeq_combine_cluster_plot.r',conf_dict['Step4_Analysis']['clusterresult'],conf_dict['General']['outname'])
+
+
+    analysisqctime = time.time() - t
+    Log("time for analysis qc: %ss"%(analysisqctime),logfile)
+    Log("Step4 analysis QC DONE",logfile)
+    step4time = time.time() -t
+    Log("running time for clustering: %ss"%(step4time),logfile)
+    # summary step, integrate all QC figure and expression matrix, generate qC report with latex
+    Log('Step5: summary',logfile)
+    Log('copy results',logfile)
+    summarydir = conf_dict['General']['outputdirectory'] + '/summary/'
+    CreateDirectory(summarydir)
+    os.chdir(summarydir)
+    
+    os.chdir(start_dir)
+    plot_folder = summarydir + "plots/"
+    CreateDirectory(plot_folder)
+    os.chdir(plot_folder)
+    ### collect results 
+    for i in conf_dict['QCplots']:
+        if os.path.isfile(conf_dict['QCplots'][i]):
+            #realname
+            cmd = 'cp %s .'%conf_dict['QCplots'][i]
+            LogCommand(cmd,logfile)
+
+    result_folder = summarydir + "results/"
+    CreateDirectory(result_folder)
+    os.chdir(result_folder)
+    for i in conf_dict['results']:
+        if os.path.isfile(conf_dict['results'][i]):
+            cmd = 'cp %s .'%conf_dict['results'][i]
+            LogCommand(cmd,logfile)
+
+    os.chdir(summarydir)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt me!\n")
+        sys.exit(0)

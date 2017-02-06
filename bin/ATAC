@@ -1,0 +1,740 @@
+#!/usr/bin/python
+# Time-stamp: 2016-12-06
+# Author: Chenchen Zhao
+# Email: 1310780@tongji.edu.cn
+"""
+    <ATAClustering : clustering cells based on peaks>
+    Copyright (C) <2016>  <Chengchen Zhao>
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+
+# ------------------------------------
+# Python Modual
+# ------------------------------------
+
+import os
+import sys
+import string
+import time
+import DrSeq2pipe
+from optparse import OptionParser
+# --------------------------
+# custom package
+# --------------------------
+
+### tool function
+from DrSeq2pipe.Utility      import (Get,
+                                   ChangeName,
+                                   RaiseError,
+                                   Log,
+                                   LogError,
+                                   LogCommand,
+                                   Run,
+                                   CreateDirectory,
+                                   SampleDownTransformSam,
+                                   GeneAnnotation,
+                                   ReformBarcodeFastq,
+                                   CombineReads,
+                                   GenerateMatrix,
+                                   LatexFormat,
+                                   NumberFormat
+                                   )
+# --------------------------
+# main 
+# --------------------------
+def GenomeBedBuild(genome_type,step=100000):
+    hg_dic = {"chr1":249250621,"chr2":243199373,"chr3":198022430,"chr4":191154276,"chr5":180915260,"chr6":171115067,"chr7":159138663,"chrX":155270560,"chr8":146364022,"chr9":141213431,"chr10":135534747,"chr11":135006516,"chr12":133851895,"chr13":115169878,"chr14":107349540,"chr15":102531392,"chr16":90354753,"chr17":81195210,"chr18":78077248,"chr20":63025520,"chrY":59373566,"chr19":59128983,"chr22":51304566,"chr21":48129895,"chrM":16571}
+    mm_dic = {"chr1":197195432,"chr2":181748087,"chrX":166650296,"chr3":159599783,"chr4":155630120,"chr5":152537259,"chr7":152524553,"chr6":149517037,"chr8":131738871,"chr10":129993255,"chr14":125194864,"chr9":124076172,"chr11":121843856,"chr12":121257530,"chr13":120284312,"chr15":103494974,"chr16":98319150,"chr17":95272651,"chr18":90772031,"chr19":61342430,"chrY":15902555,"chrM":16299}
+    out_file = genome_type + "_" + str(step) + ".bed"
+    output_info = open(out_file,"w")
+    if genome_type == "hs":
+        for each in hg_dic:
+            chr = each
+            len = hg_dic[each]
+            i = 0
+            while i < len:
+                output_info.write("%s\t%d\t%d\n"%(chr,i,i+100000))
+                i += 100000
+    elif genome_type == "mm":
+        for each in mm_dic:
+            chr = each
+            len = mm_dic[each]
+            i = 0
+            while i < len:
+                output_info.write("%s\t%d\t%d\n"%(chr,i,i+100000))
+                i += 100000
+    else:
+        print "Only Homo sapiens(hs) and Mus musculus(mm) are supported for -g option. Please Check your input."
+        sys.exit(0)
+    output_info.close()
+
+def CeasSelected(conf_dict,logfile):
+    ceas_r_info = open(conf_dict['analysisdir'] + conf_dict["outname"]+"_ceas.R")
+    tmp_out_info = open(conf_dict['analysisdir'] + conf_dict["outname"]+"_ceas_eachplot.R","w")
+    figure_marker = 0
+    for each in ceas_r_info:
+        if each.startswith("mtext"):
+            figure_marker = 1
+        if each.startswith("pdf"):
+            pass
+        else:    
+            if each.startswith("# Chromosomal Distribution"):
+                tmp_out_info.write(each)
+                tmp_out_info.write("pdf('%s_Figure1_peak_on_chromsome.pdf',height=12,width=12)\n"%conf_dict["outname"])
+            elif each.startswith("# Promoter,Bipromoter,Downstream, Gene and Regions of interest"):
+                tmp_out_info.write("dev.off()\n")
+                tmp_out_info.write(each)
+                tmp_out_info.write("pdf('%s_peak_fraction_on_promoter_bipromoter_downstream_and_gene.pdf',height=12,width=12)\n"%conf_dict["outname"])
+            elif each.startswith("# Distribution of Genome and ChIP regions over cis-regulatory element"):
+                tmp_out_info.write("dev.off()\n")
+                tmp_out_info.write(each)
+                tmp_out_info.write("pdf('%s_Figure2_Distribution_of_Genome_and_ChIP_regions_over_cis_regulatory_element.pdf',height=12,width=12)\n"%conf_dict["outname"])
+            elif each.startswith("# ChIP regions over the genome"):
+                tmp_out_info.write("dev.off()\n")
+                tmp_out_info.write(each)
+                tmp_out_info.write("pdf('%s_Figure2_peak_distribution.pdf',height=12,width=12)\n"%conf_dict["outname"])
+            elif each.startswith("par(mar=c(4, 4, 5, 3.8),oma=c(4, 2, 4, 2))") and figure_marker == 1:
+                tmp_out_info.write("dev.off()\n")
+                tmp_out_info.write("pdf('%s_Figure3_GeneCover.pdf',height=10,width=10)\n"%conf_dict["outname"])
+                tmp_out_info.write(each)
+                figure_marker = 0
+            elif each.startswith("layout(matrix(c(1, 2, 3, 3, 4, 5), 3, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))"):
+                tmp_out_info.write("layout(matrix(c(1, 2, 3, 3), 2, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))\n")
+            elif each.startswith("par(mfrow=c(3, 2)"):
+                tmp_out_info.write("dev.off()\n")
+                tmp_out_info.write("pdf('%s_averageProfile_on_exon_intron_region.pdf',height=12,width=12)\n"%conf_dict["outname"])
+                tmp_out_info.write(each)
+            else:
+                tmp_out_info.write(each)
+    ceas_r_info.close()
+    tmp_out_info.close()
+    os.chdir(conf_dict['analysisdir'])              
+    LogCommand("Rscript "+conf_dict["outname"]+"_ceas_eachplot.R",logfile)
+
+def Summary(conf_dict,logfile):
+    CeasSelected(conf_dict,logfile)
+    
+    Log('Summary',logfile)
+    Log('copy results',logfile)
+    summarydir = conf_dict["summarydir"]
+    CreateDirectory(summarydir)
+    os.chdir(summarydir)
+    
+    plot_folder = summarydir + "plots/"
+    CreateDirectory(plot_folder)
+    os.chdir(plot_folder)
+    ### collect results 
+    for i in conf_dict["QCplots"]:
+        if os.path.isfile(conf_dict["QCplots"][i]):
+            #realname
+            cmd = 'cp %s .'%conf_dict["QCplots"][i]
+            LogCommand(cmd,logfile)
+
+    result_folder = summarydir + "results/"
+    CreateDirectory(result_folder)
+    os.chdir(result_folder)
+    for i in conf_dict["results"]:
+        cmd = 'cp %s .'%conf_dict["results"][i]
+        LogCommand(cmd,logfile)
+
+    os.chdir(summarydir)
+    Log('generate qc documents',logfile)
+    ### initiate 
+    QCdoc = """\documentclass[11pt,a4paper]{article}
+\usepackage{tabularx}
+\usepackage[english]{babel}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage{color}
+\DeclareGraphicsExtensions{.eps,.png,.pdf,.ps}
+\\begin{document}
+\\title{Dr.seq 2.0 QC and Analysis Summary Report: %s}
+
+\\vspace{-1cm}
+\maketitle
+\\tableofcontents
+\\newpage
+\\newpage
+\section{Data description}
+\\begin{quotation}
+Table 1 mainly describe the input file and mapping and analysis parameters.
+\end{quotation}
+\\begin{table}[h]
+\caption{Data description}\label{bstable}
+\\begin{tabularx}{\\textwidth}{ |X|l| }
+
+"""%(LatexFormat(conf_dict["outname"]))
+    if conf_dict["qfilter"] == "1":
+        q30filter = "True"
+    else:
+        q30filter = "False"
+
+    QCdoc += """      
+\hline
+parameter & value  \\\\
+\hline
+output name & %s \\\\
+\hline
+reads file(file name only) & %s ...\\\\
+\hline
+fragment length threshold & %s \\\\
+\hline
+genome type & %s \\\\
+\hline
+p-value threshold for macs14 & %s \\\\
+\hline
+height of cutting tree & %s \\\\
+\hline
+given cluster numbers & %s \\\\
+\hline
+limited number of peaks of informative cells & %s \\\\
+\hline
+limited number of cells of informative peaks & %s \\\\
+\hline
+Q30 filter mapped reads & %s \\\\
+\hline
+
+\end{tabularx}
+\end{table}
+"""%(LatexFormat(conf_dict["outname"]),
+    LatexFormat(str(conf_dict["input_files"].split(",")[0])),
+    LatexFormat(conf_dict["length_filter"]),
+    LatexFormat(conf_dict["genome_type"]),
+    LatexFormat(conf_dict["pvalue"]),
+    LatexFormat(conf_dict["cut_height"]),
+    LatexFormat(conf_dict["cluster_number"]),
+    LatexFormat(conf_dict["peak_cutoff"]),
+    LatexFormat(conf_dict["cell_cutoff"]),
+    LatexFormat(q30filter),
+    )
+
+    QCdoc += """
+\\newpage
+\\newpage
+\section{Bulk-cell level QC}
+In the bulk-cell level QC step we measured the performance of total scATAC reads. In this step we did't separate reads, just like treated the sample as bulk ATAC-seq sample.
+\\newpage
+\\newpage
+\subsection{Reads alignment summary}
+\\begin{quotation}
+The following table shows reads number after each filter strategy and mapped reads of final selected reads. It measures the general sequencing quality. Low mappability indicates poor sequence quality(see ``Reads level QC") or library quality(caused by contaminant). \\\\ In summary, if the percentage of ``total mapped reads" is less than 5\\%%, users may consider reconstruct your library(redo the experiment), but first you should make sure you already trim the adapter and map your reads to the corresponded species(genome version). Mappable reads was after Q30 filtering if Q30 filter function was turned on.
+\end{quotation}
+\\begin{table}[h]
+\caption{Reads alignment summary}\label{bstable}
+\\begin{tabularx}{\\textwidth}{ |X|X| }
+    
+\hline
+genomic region(Category) &  reads number \\\\
+\hline
+total number of read & %s \\\\
+\hline
+number of mapped reads & %s (%s\\%%)* \\\\
+\hline
+number of mitochondria reads & %s (%s\\%%)* \\\\
+\hline
+\end{tabularx}
+\end{table}
+"""%(NumberFormat(str(conf_dict["mapping"]["total_reads_N"])),
+     NumberFormat(str(conf_dict["mapping"]["mapped_reads_N"])),
+     str(round(100*conf_dict["mapping"]["mapped_reads_N"]*1.0/conf_dict["mapping"]["total_reads_N"], 2)),
+     NumberFormat(str(conf_dict["mapping"]["m_reads_N"])),
+     str(round(100*conf_dict["mapping"]["m_reads_N"]*1.0/conf_dict["mapping"]["total_reads_N"], 2))
+     )
+
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{Chromosomal Distribution of ChIP Regions}
+\\begin{quotation}
+The blue bars represent the percentages of the whole tiled or mappable regions in the chromosomes (genome background) and the red bars showed the percentages of the whole ChIP. These percentages are also marked right next to the bars. P-values for the significance of the relative enrichment of ChIP regions with respect to the gnome background are shown in parentheses next to the percentages of the red bars.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{Chromosomal Distribution of ChIP Regions} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['read_chrom'].split("/")[-1])
+
+### peak distribution
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{Peaks over Chromosomes}
+\\begin{quotation}
+Barplot show ChIP regions distributed over the genome along with their scores or peak heights. The line graph on the top left corner illustrates the distribution of peak heights (or scores). The red bars in the main plot ChIP regions in the input BED file. The x-axis of the main plot represents the actual chromosome sizes.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{Peaks over Chromosomes} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['peak_dis'].split("/")[-1])
+
+### average profile on different genome regions
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{average profile on different genome regions}
+\\begin{quotation}
+Average profiling within/near important genomic features. The panels on the first row display the average ChIP enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average ChIP signals on the meta-gene of 3 kb.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{average profile on different genome regions} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['gene_cover'].split("/")[-1])
+### fragment length distribution
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{distribution of fragment numbers (excluded fragments in mitochondria)}
+\\begin{quotation}
+ATAC-seq indicated factor occupancy and nucleosome positions with periodicity fragment length distribution.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{distribution of fragment numbers (excluded fragments in mitochondria)} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]["fragmentDis"].split("/")[-1])
+
+    QCdoc += """
+\\newpage
+\\newpage
+\section{Individual-cell level QC}
+In this step we focused on the quality of individual cell by calculate the number of peak per cell overlapped with combined peaks
+\\newpage
+\\newpage
+\subsection{Distribution of peak numbers per cell}
+\\begin{quotation}
+To measure whether the cell is informative for post-analysis, peak number per each cell is calculated, The cells with small number of peaks indicated the limited informative of cells.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{Peak distribution} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['peakDis'].split("/")[-1])
+    QCdoc += """
+\\newpage
+\\newpage
+\section{Cell-clustering level QC}
+This step composed by h-clustering based on macs14 peaks.
+\\newpage
+\\newpage
+\subsection{Cell clustering}
+\\begin{quotation}
+We conducted a h-cluster based on macs14 peaks to measure sample's ability to be separated to different cell subtypes. 
+\end{quotation}
+\\begin{figure}[h]
+        \caption{h-clustering based on peak} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['clustering'].split("/")[-1])
+    if os.path.isfile(conf_dict['QCplots']['silhouette']):
+        QCdoc += """
+\\newpage
+\\newpage
+\subsection{Silhouette of clustering}
+\\begin{quotation}
+Silhouette method is used to interprate and validate the consistency within clusters defined in previous steps. A poor Silhouette (e.g. average si $<$ 0.2 ) score indicate that the experiments(if not properly done) may not separate well the subpopulations of cells. If most of your clusters have poor Silhouette score, it may indicate a poor quality of your experiments. 
+\end{quotation}
+\\begin{figure}[h]
+        \caption{Silhouette score for clustered STAMPs} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+
+"""%(conf_dict['QCplots']['silhouette'].split("/")[-1])
+
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{Clustering heatmap}
+\\begin{quotation}
+Cell Clustering tree and peak region in each cell. The upper panel represents the hieratical clustering results based on each single cell. The second panel with different colors represents decision of cell clustering. The bottom two panels (heatmap and color bar) represent the "combined peaks" occupancy of each single cell.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{h-clustering heatmap} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['heatmap'].split("/")[-1])
+    QCdoc += """
+\\newpage
+\\newpage
+\subsection{ideogram}
+\\begin{quotation}
+Cluster specific regions were show in each chromsome.
+\end{quotation}
+\\begin{figure}[h]
+        \caption{ideogram of cluster specific regions} \label{fig:profileunion}
+        \setlength{\\abovecaptionskip}{0pt}
+        \setlength{\\belowcaptionskip}{10pt}
+        \centering
+        {\includegraphics[width=0.8\\textwidth]{%s}}
+\end{figure}
+"""%(conf_dict["QCplots"]['ideogram'].split("/")[-1])
+
+    QCdoc += """
+\\newpage
+\\newpage
+\section{Output list}
+\\begin{quotation}
+All output files were described in the following table
+\end{quotation}
+\\begin{table}[h]
+\caption{output list}\label{bstable}
+\\begin{tabularx}{\\textwidth}{ |X|l| }
+\hline
+description & filename \\\\
+\hline
+peak location matrix for each cell & %s  \\\\
+\hline
+cells in each cluster & %s  \\\\
+\hline
+cell type specific peaks per each cluster & %s  \\\\
+\hline
+cell clustering results with Silhouette Score & %s  \\\\
+\hline
+combined peaks & %s  \\\\
+"""%(LatexFormat(conf_dict["results"]['peakMatrix'].split("/")[-1]),
+    LatexFormat(conf_dict["results"]['clusterCells'].split("/")[-1]),
+    LatexFormat(conf_dict["results"]['specificPeak'].split("/")[-1]),
+    LatexFormat(conf_dict["results"]['cluster_with_silhouette_score'].split("/")[-1]),
+    LatexFormat(conf_dict["results"]['totalPeaks'].split("/")[-1]))
+    QCdoc += """
+\hline
+summary QC report & %s \\\\
+\hline
+\end{tabularx}
+\end{table} 
+\end{document} 
+"""%(LatexFormat(conf_dict['outname'])+"\_summary.pdf")
+
+    os.chdir(plot_folder)
+
+    latexfile = conf_dict["outname"] + '_summary.tex'
+    outf = open(latexfile,'w')
+    outf.write(QCdoc)
+    outf.close()
+    cmd = "pdflatex %s"%(latexfile)
+    cmd2 = 'cp %s %s'%(conf_dict["outname"] + '_summary.pdf',summarydir)
+    if conf_dict['latex'] == 1:
+        LogCommand(cmd,logfile)
+        LogCommand(cmd,logfile)
+        LogCommand(cmd2,logfile)
+        for files in os.listdir(plot_folder):
+            if os.path.isfile(files) and files[-12:-4] == "_summary":
+                if not files[-4:] in ['.tex','.pdf',',png','.txt']:
+                    cmd = "rm %s"%(files)
+                    LogCommand(cmd,logfile)
+        Log('pdflatex was detected in default PATH, generate summary report %s'%('summary/'+conf_dict["outname"] + '_summary.pdf'),logfile)
+    else:
+        Log('pdflatex was not detected in default PATH, generate summary report .tex file in summary/plots folder, you can move the whole summary/plots/ folder to the environment with pdflatex installed and run cmd in the plots/ folder: "pdflatex %s"'%(conf_dict["outname"] + '_summary.tex'),logfile)
+           
+    Log('Step5 summary DONE, check %s for final outputs'%(summarydir),logfile)
+
+
+    return conf_dict
+    
+def main():
+    '''
+    Conduct cell clustering for multiple scATAC-seq mapping file.
+    ''' 
+    ## define the options when we run this programing we needed
+    usage = "usage: %prog -i <input_files> -o outname --layout -l length_filter -g genome_type -p pvalue -C cluster_number -c cut_height --qfilter  --geneannotation --cell_cutoff --peak_cutoff"
+    description = "ATAC : clustering cells based on peaks"
+    optparser = OptionParser(version="%prog 0.1",description=description,usage=usage,add_help_option=False)
+    optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
+    optparser.add_option("-i","--input_files",dest="input_files",type="string",help="input mapped reads file of single cell ATAC-seq. Directory that contains your Sam/Bam files show be input. multiple Sam/Bam files are also supported. These files should seperate by comma.This parameter is required.")
+    optparser.add_option("-o","--outname",dest="outname",type="string",default='out',help="output name.This parameter is required.Default is 'out'.")
+    optparser.add_option("-l","--length_filter",dest="length_filter",type="string",default='1500',help="the fragment with length > length_filter will be discarded.")
+    optparser.add_option("-g","--genome_type",dest="genome_type",type="string",default='hs',help="genome_type for effective genome size. It can be shortcuts:'hs' for human (2.7e9), 'mm' for mouse (1.87e9) Default:hs")
+    optparser.add_option("-p","--pvalue",dest="pvalue",type="string",default='1e-5',help="p-value cutoff for peak detection. DEFAULT: 1e-5.")
+    optparser.add_option("-c","--cut_height",dest="cut_height",type="string",default='0',help="height for cutting tree. DEFAULT: 0. Ignored when -C set.")
+    optparser.add_option("-C","--cluster_number",dest="cluster_number",type="string",default='3',help="Given cluster numbers. DEFAULT: 3.")
+    optparser.add_option("--qfilter",dest="qfilter",type="string",default='1',help="whether filter out reads that are bad according to sequencing quality")
+    optparser.add_option("--layout",dest="layout",type="string",default='pair',help="pair-end sequencing or single-end sequencing.'pair' strands for pair-end sequencing.'single' strands for single-end sequencing.")
+    optparser.add_option("--geneannotation",dest="geneannotation",type="string",help="gene annotation file for CEAS.")
+    optparser.add_option("--cell_cutoff",dest="cell_cutoff",type="string",default='20',help="discard the peaks containing cells less than <cell cutoff>")
+    optparser.add_option("--peak_cutoff",dest="peak_cutoff",type="string",default='20',help="discard the cells containing peaks less than <peak cutoff>")
+    
+    (options,args) = optparser.parse_args()
+    input_files = options.input_files
+    outname = options.outname
+    length_filter = options.length_filter
+    genome_type = options.genome_type
+    pvalue = options.pvalue
+    qfilter = options.qfilter
+    layout = options.layout
+    cut_height = options.cut_height
+    cluster_number = options.cluster_number
+    geneannotation = options.geneannotation
+    cell_cutoff = options.cell_cutoff
+    peak_cutoff = options.peak_cutoff
+
+    if Get('which macs14')[0].strip() == "":
+        LogError('macs14 is not detected in default PATH, make sure you installed macs14 and export it into default PATH.',logfile)
+
+    if genome_type == "hs":
+        cytoBandfile = os.path.join(DrSeq2pipe.__path__[0], "Rscript/hg19cytoBand.txt.gz")
+    elif genome_type == "mm":
+        cytoBandfile = os.path.join(DrSeq2pipe.__path__[0], "Rscript/mm9cytoBand.txt.gz")
+    else:
+        print "Only Homo sapiens(hs) and Mus musculus(mm) are supported for -g option. Please Check your input."
+        sys.exit(0)
+
+    ## to avoid the wrong input 
+    if (input_files==None or outname==None or length_filter==None or genome_type==None or pvalue==None or qfilter==None or cut_height==None or geneannotation==None):
+        print "Please Check your input.\n"
+        optparser.print_help()
+        sys.exit(0)
+    
+    start_dir = os.getcwd()+'/'
+    outputdir = start_dir + outname
+    CreateDirectory(outputdir)
+    analysisdir = start_dir + outname + '/analysis/'
+    CreateDirectory(analysisdir)
+    logfile = outputdir+'/progress_log.txt'
+
+    try :
+        input_file_dir = os.listdir(input_files)
+        input_files_list = []
+        for each in input_file_dir:
+            if each.endswith(".sam") or each.endswith(".bam"):
+                input_files_list.append(input_files+"/"+each)
+            else:
+                print "This file '%s' is not a sam file nor a bam file, ignored.\n"%each_file
+        if len(input_files_list) == 0:
+            print "No sam or bam files found with you input option. Please Check your input files. \n"
+            sys.exit(0) 
+    except:
+        input_files_list = input_files.split(",")
+
+    if len(input_files_list) == 0:
+        print "No sam or bam files found with you input option. Please Check your input files. \n"
+        sys.exit(0) 
+
+    t = time.time()
+    tmp_input_files = []
+    for each_file in input_files_list:
+        if not os.path.isfile(each_file):
+            print "Please Check your input file, this file '%s' is not available. Maybe an unexpeced blank space is in your input -i option.\n"%each_file
+            sys.exit(0)
+        if each_file.endswith(".sam"):
+            sample_name = each_file.split("/")[-1][:-4]
+            tmp_input_files.append(sample_name+".bam")
+            cmd = "samtools view -Sb %s > %s/%s.bam"%(each_file,analysisdir,sample_name)
+            LogCommand(cmd,logfile)
+        elif each_file.endswith(".bam"):
+            tmp_input_files.append(each_file.split("/")[-1])
+            cmd = "cp %s %s"%(each_file,analysisdir)
+            LogCommand(cmd,logfile)
+        else:
+            print "Please Check your input file, this file '%s' is not a sam file nor a bam file.\n"%each_file
+            sys.exit(0) 
+
+    if len(input_files_list) < 5:
+        print "Only %d cells are provided, clusters based on less than 5 cells may not make sense.\n"%len(input_files_list)
+        sys.exit(0) 
+
+    os.chdir(analysisdir)
+    cmd = "samtools view -H %s > header.sam"%(tmp_input_files[0])
+    LogCommand(cmd,logfile)
+    cmd = "samtools merge -nrf -h header.sam %s.bam %s" % (outname," ".join(tmp_input_files))
+    LogCommand(cmd,logfile)
+   
+    step1time = time.time() - t
+    Log("[STEP1] running time for merge reads of cells: %ss"%(step1time),logfile)
+    
+    mapping_summary = os.popen("samtools flagstat %s.bam"%(outname)).read()
+    total_reads_N = mapping_summary.split("in total")[0].split("\n")[-1].split("+")[0]
+    mapped_reads_N = mapping_summary.split("mapped (")[0].split("\n")[-1].split("+")[0]
+    m_reads_N = int(os.popen("""samtools view %s.bam | awk '{if ($3 == "chrM") print $0}' | wc -l"""%(outname)).read())/2
+
+    t = time.time()
+    if qfilter == "1":
+        if layout == "pair":
+            cmd = "samtools view -f 0x2 %s.bam | awk 'NR %% 2 == 1{mapq=$5;forward=$0} NR %% 2 == 0{if($5>=30 && mapq>=30 && substr($3,1,3)==\"chr\" && $3!=\"chrM\" && $9 >= -%s && $9 <= %s) print forward\"\\n\"$0}' > %s_noM.sam"%(outname,length_filter,length_filter,outname)
+        elif layout == "single":
+            cmd = "awk 'if($5>=30 && substr($3,1,3)==\"chr\" && $3!=\"chrM\") print $0}' %s.sam > %s_noM.sam"%(outname,outname)
+        else :
+            print "Please Check your layout option, only 'pair' or 'single' is supported.\n"
+    elif qfilter == "0":
+        if layout == "pair":
+            cmd = "samtools view -f 0x2 %s.bam | awk 'NR %% 2 == 1{forward=$0} NR %% 2 == 0{if(substr($3,1,3)==\"chr\" && $3!=\"chrM\" && $9 >= -%s && $9 <= %s) print forward\"\\n\"$0}' > %s_noM.sam"%(outname,length_filter,length_filter,outname)
+        elif layout == "single":
+            cmd = "awk 'if(substr($3,1,3)==\"chr\" && $3!=\"chrM\") print $0}' %s.sam > %s_noM.sam"%(outname,outname)
+        else:
+            print "Please Check your layout option, only 'pair' or 'single' is supported.\n"
+    else:
+        print "Please Check your qfilter option, only '1' or '0' is supported.\n"
+    LogCommand(cmd,logfile)
+
+
+    cmd = """cat header.sam %s_noM.sam | samtools view -bS - > %s_noM.bam"""%(outname,outname)
+    LogCommand(cmd,logfile)
+    cmd = """bamToBed -bedpe -i %s_noM.bam | awk '{if($2<$5) print $1"\t"$2"\t"$6; else print $1"\t"$5"\t"$3}' | sort -k1,1 -k2,2n | uniq > %s_fragments.bed"""%(outname,outname)
+    LogCommand(cmd,logfile)
+    cmd = """awk '{print $3-$2}' %s_fragments.bed | sort | uniq -c | sort -k2,2g | awk 'BEGIN{print "fragment_length\tnumber"} {print $2"\t"$1}' > %s_fragments_length.txt"""%(outname,outname)
+    LogCommand(cmd,logfile)
+    cmd = "Rscript %s %s %s"%(os.path.join(DrSeq2pipe.__path__[0], "Rscript/")+"ATAC_fragment_length.r","%s_fragments_length.txt"%outname,outname)
+    LogCommand(cmd,logfile)
+
+    cmd = """macs14 -wS -t %s_noM.sam -n %s -g hs -p 1e-5 --keep-dup all --nomodel """ %(outname,outname)
+    LogCommand(cmd,logfile)
+    cmd = """gunzip %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig.gz""" %(outname,outname)
+    LogCommand(cmd,logfile)
+    cmd = """ceas -w %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig -b %s_peaks.bed -g %s --name %s_ceas""" %(outname,outname,outname,geneannotation,outname)
+    LogCommand(cmd,logfile)
+    step2time = time.time() - t
+    Log("[STEP2] running time for bulk-cell level QC: %ss"%(step2time),logfile)
+    
+    
+    t = time.time()
+
+    tmp_peak_files = []
+    for each_file in tmp_input_files:
+        cmd = """intersectBed -bed -wb -abam %s -b %s_peaks.bed | awk '{print $13"_"$14"_"$15}' | sort | sort | uniq > %s.peak"""%(each_file,outname,each_file[:-4])
+        LogCommand(cmd,logfile)
+        tmp_peak_files.append(each_file[:-4]+".peak")
+    
+    cmd = """awk '{print $1"_"$2"_"$3}' %s_peaks.bed > %s_total_peaks.location"""%(outname,outname)
+    LogCommand(cmd,logfile)
+    total_peak_file = "%s_total_peaks.location"%outname
+
+    cmd = "Rscript %s %s %s %s %s %s %s %s"%(os.path.join(DrSeq2pipe.__path__[0], "Rscript/")+"ATAC_clustering.r",",".join(tmp_peak_files),outname,total_peak_file,cut_height,cell_cutoff,peak_cutoff,cluster_number)
+    LogCommand(cmd,logfile)
+
+    step3time = time.time() - t
+    Log("[STEP3] running time for individual-cell level QC and cell-clustering QC: %ss"%(step3time),logfile)
+    
+    # step=100000
+    # GenomeBedBuild(genome_type,step)
+    
+    t = time.time()
+    k = 0
+    specific_peak_files = []
+    for each_cluster in os.listdir(analysisdir):
+        if "_cluster" in each_cluster and "_cells.txt" in each_cluster:
+            cluster_files = []
+            files_info = open(each_cluster)
+            for each_cell in files_info:
+                cluster_files.append(each_cell.strip()+".bam")
+            # unclustet_files = list(set(tmp_input_files).difference(set(cluster_files)))
+            if len(cluster_files) >= 3:
+                k += 1
+    #             cmd = "samtools merge -nrf -h header.sam %s.bam %s"%(each_cluster[:-10]," ".join(cluster_files))
+    #             LogCommand(cmd,logfile)
+    #             cmd = "samtools merge -nrf -h header.sam DIFF_%s.bam %s"%(each_cluster[:-10]," ".join(unclustet_files))
+    #             LogCommand(cmd,logfile)
+    #             cmd = "intersectBed -bed -wb -abam %s.bam -b %s_peaks.bed | cut -f 13,14,15 > %s.peak"%(each_cluster[:-10],outname,each_cluster[:-10])
+    #             LogCommand(cmd,logfile)
+    #             cmd = "intersectBed -bed -wb -abam DIFF_%s.bam -b %s_peaks.bed | cut -f 13,14,15 > DIFF_%s.peak "%(each_cluster[:-10],outname,each_cluster[:-10])
+    #             LogCommand(cmd,logfile)
+    #             cmd = "intersectBed -bed -wa -v -a %s.peak -b DIFF_%s.peak > %s_specific.peak"%(each_cluster[:-10],each_cluster[:-10],each_cluster[:-10])
+    #             LogCommand(cmd,logfile)
+    #             cmd = "intersectBed -wa -a %s -b %s_specific.peak | sort | uniq > %s_specific.peak.bed"%(genome_type + "_" + str(step) + ".bed",each_cluster[:-10],each_cluster[:-10])
+    #             LogCommand(cmd,logfile)
+                specific_peak_files.append("%s_specific.peak.bed"%each_cluster[:-10])
+            else:
+                Log("%s contains %d cells,discarded."%(each_cluster,len(cluster_files)),logfile)
+    
+    if k > 0:
+        if genome_type == "hs":
+            cytoBandfile = os.path.join(DrSeq2pipe.__path__[0], "Rscript/hg19cytoBand.txt.gz")
+        elif genome_type == "mm":
+            cytoBandfile = os.path.join(DrSeq2pipe.__path__[0], "Rscript/mm9cytoBand.txt.gz")
+        else:
+            print "Only Homo sapiens(hs) and Mus musculus(mm) are supported for -g option. Please Check your input."
+            sys.exit(0)
+        cmd = "Rscript %s %s %s %s %s %s"%(os.path.join(DrSeq2pipe.__path__[0], "Rscript/")+"ATAC_ideogram_draw.r",cytoBandfile,outname,str(k),",".join(specific_peak_files),genome_type)
+        LogCommand(cmd,logfile)
+    else:
+        LogError("Cluster cell files can't be detected in the analysis directory, please do not remove these '*cells.txt' files.",logfile)
+    step4time = time.time() - t
+    Log("[STEP4] running time for post-analysis: %ss"%(step4time),logfile)
+
+
+    t = time.time()
+    conf_dict = {}
+    conf_dict["outname"] = outname
+    conf_dict["qfilter"] = qfilter
+    conf_dict["input_files"] = tmp_input_files
+    conf_dict["length_filter"] = length_filter
+    conf_dict["genome_type"] = genome_type
+    conf_dict["pvalue"] = pvalue
+    conf_dict["cut_height"] = cut_height
+    conf_dict["cluster_number"] = cluster_number
+    conf_dict["cell_cutoff"] = cell_cutoff
+    conf_dict["peak_cutoff"] = peak_cutoff
+    conf_dict["analysisdir"] = start_dir + outname + '/analysis/'
+    conf_dict["summarydir"] = start_dir + outname + '/summary/'
+    conf_dict["QCplots"] = {}
+    conf_dict["QCplots"]["read_chrom"] = analysisdir + outname + '_Figure1_peak_on_chromsome.pdf'
+    conf_dict["QCplots"]["peak_dis"] = analysisdir + outname + '_Figure2_peak_distribution.pdf'
+    conf_dict["QCplots"]["gene_cover"] = analysisdir + outname + '_Figure3_GeneCover.pdf'
+    conf_dict["QCplots"]["peakDis"] = analysisdir + outname + "_Figure4_peak_number_distribution.pdf"
+    conf_dict["QCplots"]["fragmentDis"] = analysisdir + outname + "_Figure5_fragment_length_distribution.pdf"
+    conf_dict["QCplots"]["clustering"] = analysisdir + outname + "_Figure6_cell_clusting.pdf"
+    conf_dict["QCplots"]["silhouette"] = analysisdir + outname + "_Figure7_silhouetteScore.pdf"
+    conf_dict["QCplots"]["heatmap"] = analysisdir + outname + "_Figure8_heatmap.png"
+    conf_dict["QCplots"]["ideogram"] = analysisdir + outname + "_Figure9_ideogram.pdf"
+    conf_dict["results"] = {}
+    conf_dict["results"]["clusterCells"] = analysisdir + outname + "_cluster*_cells.txt"
+    conf_dict["results"]["specificPeak"] = analysisdir + outname + "*_specific.peak.bed"
+    conf_dict["results"]["peakMatrix"] = analysisdir + outname + "peakMatrix.txt"
+    conf_dict["results"]["totalPeaks"] = analysisdir + outname + "_peaks.bed"
+    conf_dict["results"]["cluster_with_silhouette_score"] = analysisdir + outname + "_cluster_with_silhouette_score.txt"
+    conf_dict["mapping"] = {}
+    conf_dict["mapping"]["total_reads_N"] = int(total_reads_N)
+    conf_dict["mapping"]["mapped_reads_N"] = int(mapped_reads_N)
+    conf_dict["mapping"]["m_reads_N"] = int(m_reads_N)
+
+    ### check pdflatex
+    if Get('pdflatex --help')[0] == "":
+        Log('pdflatex was not installed, Dr.seq is still processing but no summary QC report generated',logfile)
+        conf_dict['latex'] = 0
+    else:
+        conf_dict['latex'] = 1
+
+    Summary(conf_dict,logfile)
+    step5time = time.time() - t
+    Log("[STEP4] running time for summary: %ss"%(step5time),logfile)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.stderr.write("User interrupt me!\n")
+        sys.exit(0)
