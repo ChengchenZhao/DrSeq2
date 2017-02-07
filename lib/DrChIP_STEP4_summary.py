@@ -289,7 +289,7 @@ The blue bars represent the percentages of the whole tiled or mappable regions i
 \\newpage
 \subsection{Peaks over Chromosomes}
 \\begin{quotation}
-Barplot show ChIP regions distributed over the genome along with their scores or peak heights. The line graph on the top left corner illustrates the distribution of peak heights (or scores). The red bars in the main plot ChIP regions in the input BED file. The x-axis of the main plot represents the actual chromosome sizes.
+Barplot show ChIP regions distributed over the genome along with their scores or peak heights. The line graph on the top left corner illustrates the distribution of peak heights (or scores). The x-axis of the main plot represents the actual chromosome sizes.
 \end{quotation}
 \\begin{figure}[h]
         \caption{Peaks over Chromosomes} \label{fig:profileunion}

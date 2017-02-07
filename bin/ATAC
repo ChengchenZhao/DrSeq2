@@ -96,11 +96,11 @@ def CeasSelected(conf_dict,logfile):
                 tmp_out_info.write("dev.off()\n")
                 tmp_out_info.write(each)
                 tmp_out_info.write("pdf('%s_peak_fraction_on_promoter_bipromoter_downstream_and_gene.pdf',height=12,width=12)\n"%conf_dict["outname"])
-            elif each.startswith("# Distribution of Genome and ChIP regions over cis-regulatory element"):
+            elif each.startswith("# Distribution of genome and open regions over cis-regulatory element"):
                 tmp_out_info.write("dev.off()\n")
                 tmp_out_info.write(each)
-                tmp_out_info.write("pdf('%s_Figure2_Distribution_of_Genome_and_ChIP_regions_over_cis_regulatory_element.pdf',height=12,width=12)\n"%conf_dict["outname"])
-            elif each.startswith("# ChIP regions over the genome"):
+                tmp_out_info.write("pdf('%s_Figure2_Distribution_of_Genome_and_open_regions_over_cis_regulatory_element.pdf',height=12,width=12)\n"%conf_dict["outname"])
+            elif each.startswith("# open regions over the genome"):
                 tmp_out_info.write("dev.off()\n")
                 tmp_out_info.write(each)
                 tmp_out_info.write("pdf('%s_Figure2_peak_distribution.pdf',height=12,width=12)\n"%conf_dict["outname"])
@@ -255,12 +255,12 @@ number of mitochondria reads & %s (%s\\%%)* \\\\
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{Chromosomal Distribution of ChIP Regions}
+\subsection{Chromosomal Distribution of Open Regions}
 \\begin{quotation}
-The blue bars represent the percentages of the whole tiled or mappable regions in the chromosomes (genome background) and the red bars showed the percentages of the whole ChIP. These percentages are also marked right next to the bars. P-values for the significance of the relative enrichment of ChIP regions with respect to the gnome background are shown in parentheses next to the percentages of the red bars.
+The blue bars represent the percentages of the whole tiled or mappable regions in the chromosomes (genome background) and the red bars showed the percentages of the whole open region. These percentages are also marked right next to the bars. P-values for the significance of the relative enrichment of open regions with respect to the genome background are shown in parentheses next to the percentages of the red bars.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{Chromosomal Distribution of ChIP Regions} \label{fig:profileunion}
+        \caption{Chromosomal Distribution of Open Regions} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
@@ -274,7 +274,7 @@ The blue bars represent the percentages of the whole tiled or mappable regions i
 \\newpage
 \subsection{Peaks over Chromosomes}
 \\begin{quotation}
-Barplot show ChIP regions distributed over the genome along with their scores or peak heights. The line graph on the top left corner illustrates the distribution of peak heights (or scores). The red bars in the main plot ChIP regions in the input BED file. The x-axis of the main plot represents the actual chromosome sizes.
+Barplot show open regions distributed over the genome along with their scores or peak heights. The line graph on the top left corner illustrates the distribution of peak heights (or scores). The x-axis of the main plot represents the actual chromosome sizes.
 \end{quotation}
 \\begin{figure}[h]
         \caption{Peaks over Chromosomes} \label{fig:profileunion}
@@ -291,7 +291,7 @@ Barplot show ChIP regions distributed over the genome along with their scores or
 \\newpage
 \subsection{average profile on different genome regions}
 \\begin{quotation}
-Average profiling within/near important genomic features. The panels on the first row display the average ChIP enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average ChIP signals on the meta-gene of 3 kb.
+Average profiling within/near important genomic features. The panels on the first row display the average enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average signals on the meta-gene of 3 kb.
 \end{quotation}
 \\begin{figure}[h]
         \caption{average profile on different genome regions} \label{fig:profileunion}
