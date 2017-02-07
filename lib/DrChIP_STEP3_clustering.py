@@ -57,11 +57,11 @@ def Step3Clustering(conf_dict,logfile):
     
     cmd = """awk -v "OFS=\t" '{print ($1,$2,$3,$1"_"$2"_"$3,$5)}' %sQC/%s_peaks.bed > %s_peaks_rename.bed"""%(conf_dict['General']['outputdirectory'],conf_dict['General']["outname"],conf_dict['General']['outname'])
     LogCommand(cmd,logfile)
-    cmd = "intersectBed -wo -a %s_peaks_rename.bed -b %smapping/%s.selected.bed | cut -f 4,10 > %s_overlap.txt"%(conf_dict['General']['outname'],conf_dict['General']['outputdirectory'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+    cmd = "intersectBed -wo -a %s_peaks_rename.bed -b %smapping/%s.selected.bed | cut -f 4,9 > %s_overlap.txt"%(conf_dict['General']['outname'],conf_dict['General']['outputdirectory'],conf_dict['General']['outname'],conf_dict['General']['outname'])
     LogCommand(cmd,logfile)
     # time.sleep(300)
     MartrixGenerated("%s_overlap.txt"%conf_dict['General']['outname'],conf_dict['General']['outname'],int(conf_dict['Step3_CellClustering']['max_barcode_num']))    
-    cmd = "intersectBed -wo -a %s_peaks_rename.bed -b %smapping/%s.selected.bed | cut -f 1,2,3,10 | sort | uniq > %s_peak_location.txt"%(conf_dict['General']['outname'],conf_dict['General']['outputdirectory'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+    cmd = "intersectBed -wo -a %s_peaks_rename.bed -b %smapping/%s.selected.bed | cut -f 1,2,3,9 | sort | uniq > %s_peak_location.txt"%(conf_dict['General']['outname'],conf_dict['General']['outputdirectory'],conf_dict['General']['outname'],conf_dict['General']['outname'])
     LogCommand(cmd,logfile)
     cmd = "Rscript %s %s %s %s %s %s %s %s"%(conf_dict['rscript']+'DrChIP_cell_clustering.r',conf_dict['General']['outname']+"_signal.txt",conf_dict['General']['outname'],conf_dict['Step3_CellClustering']['cut_height'],conf_dict['Step3_CellClustering']['cell_cutoff'],conf_dict['Step3_CellClustering']['peak_cutoff'],conf_dict['General']['outputdirectory'] + 'mapping/%s.readsnumber.txt'%conf_dict['General']['outname'],conf_dict['Step3_CellClustering']['given_cluster_number'])
     LogCommand(cmd,logfile)

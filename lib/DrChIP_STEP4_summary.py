@@ -239,7 +239,7 @@ In the bulk-cell level QC step we measured the performance of total Drop-ChIP re
 \\newpage
 \subsection{Reads alignment summary}
 \\begin{quotation}
-The following table shows reads number after each filter strategy and mapped reads of final selected reads. It measures the general sequencing quality. Low mappability indicates poor sequence quality(see ``Reads level QC") or library quality(caused by contaminant). High duplicate rate (low total UMI percentage observed, e.g. $<$ 10\\%%) indicate insufficient RNA material and Overamplification. In summary, if the percentage of ``total mapped reads" is less than 5\\%%, users may consider reconstruct your library(redo the experiment), but first you should make sure you already trim the adapter and map your reads to the corresponded species(genome version). Mappable reads was after Q30 filtering if Q30 filter function was turned on.\\\\
+The following table shows reads number after each filter strategy and mapped reads of final selected reads. It measures the general sequencing quality. Low mappability indicates poor sequence quality(see ``Reads level QC") or library quality(caused by contaminant). In summary, if the percentage of ``total mapped reads" is less than 5\\%%, users may consider reconstruct your library(redo the experiment), but first you should make sure you already trim the adapter and map your reads to the corresponded species(genome version). Mappable reads was after Q30 filtering if Q30 filter function was turned on.\\\\
 \end{quotation}
 \\begin{table}[h]
 \caption{Reads alignment summary}\label{bstable}
@@ -326,7 +326,7 @@ In this step we focused on the quality of individual cell and distinguishing cel
 \\newpage
 \subsection{Reads distribution}
 \\begin{quotation}
-Drop-ChIP technology has an innate advantage of detecting individual cell reads and background reads due to the barcode information. This module displays the distribution of reads number in each cell and helps to discard barcodes with high rate of background reads (which usually caused by empty cell barcodes and ambient sequence). We plot the distribution of reads number in each cell barcode (though most of cell barcodes don't contain cells, they still have reads) and observed a bimodal distribution of reads number. The red line show the reads distribution. And the background reads distribution are fitted with blue line if it is exist. The informative single cell reads distribution are fitted with yellow line.
+Drop-ChIP technology has an innate advantage of detecting individual cell reads and background reads due to the barcode information. This module displays the distribution of reads number in each cell and helps to discard barcodes with high rate of background reads (which usually caused by empty cell barcodes and ambient sequence). We plot the distribution of reads number in each cell barcode (though most of cell barcodes don't contain cells, they still have reads) and observed a bimodal distribution of reads number. The red line show the reads distribution. 
 \end{quotation}
 \\begin{figure}[h]
         \caption{Reads distribution} \label{fig:profileunion}
