@@ -100,7 +100,7 @@ def CeasSelected(conf_dict,logfile):
                 tmp_out_info.write("dev.off()\n")
                 tmp_out_info.write(each)
                 tmp_out_info.write("pdf('%s_Figure2_Distribution_of_Genome_and_open_regions_over_cis_regulatory_element.pdf',height=12,width=12)\n"%conf_dict["outname"])
-            elif each.startswith("# open regions over the genome"):
+            elif each.startswith("# ChIP regions over the genome"):
                 tmp_out_info.write("dev.off()\n")
                 tmp_out_info.write(each)
                 tmp_out_info.write("pdf('%s_Figure2_peak_distribution.pdf',height=12,width=12)\n"%conf_dict["outname"])
@@ -208,7 +208,7 @@ Q30 filter mapped reads & %s \\\\
 \end{tabularx}
 \end{table}
 """%(LatexFormat(conf_dict["outname"]),
-    LatexFormat(str(conf_dict["input_files"].split(",")[0])),
+    LatexFormat(str(conf_dict["input_files"][0])),
     LatexFormat(conf_dict["length_filter"]),
     LatexFormat(conf_dict["genome_type"]),
     LatexFormat(conf_dict["pvalue"]),
@@ -257,7 +257,7 @@ number of mitochondria reads & %s (%s\\%%)* \\\\
 \\newpage
 \subsection{Chromosomal Distribution of Open Regions}
 \\begin{quotation}
-The blue bars represent the percentages of the whole tiled or mappable regions in the chromosomes (genome background) and the red bars showed the percentages of the whole open region. These percentages are also marked right next to the bars. P-values for the significance of the relative enrichment of open regions with respect to the genome background are shown in parentheses next to the percentages of the red bars.
+The blue bars represent the percentages of the whole tiled or mappable regions in the chromosomes (genome background) and the red bars show the percentages of the whole open region. These percentages are also marked right next to the bars. P-values for the significance of the relative enrichment of open regions with respect to the genome background are shown in parentheses next to the percentages of the red bars.
 \end{quotation}
 \\begin{figure}[h]
         \caption{Chromosomal Distribution of Open Regions} \label{fig:profileunion}
@@ -289,12 +289,12 @@ Barplot show open regions distributed over the genome along with their scores or
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{average profile on different genome regions}
+\subsection{Average profile on different genome regions}
 \\begin{quotation}
 Average profiling within/near important genomic features. The panels on the first row display the average enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average signals on the meta-gene of 3 kb.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{average profile on different genome regions} \label{fig:profileunion}
+        \caption{Average profile on different genome regions} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
@@ -305,12 +305,12 @@ Average profiling within/near important genomic features. The panels on the firs
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{distribution of fragment numbers (excluded fragments in mitochondria)}
+\subsection{Distribution of fragment numbers (excluded fragments in mitochondria)}
 \\begin{quotation}
 ATAC-seq indicated factor occupancy and nucleosome positions with periodicity fragment length distribution.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{distribution of fragment numbers (excluded fragments in mitochondria)} \label{fig:profileunion}
+        \caption{Distribution of fragment numbers (excluded fragments in mitochondria)} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
@@ -362,7 +362,7 @@ We conducted a h-cluster based on macs14 peaks to measure sample's ability to be
 \\newpage
 \subsection{Silhouette of clustering}
 \\begin{quotation}
-Silhouette method is used to interprate and validate the consistency within clusters defined in previous steps. A poor Silhouette (e.g. average si $<$ 0.2 ) score indicate that the experiments(if not properly done) may not separate well the subpopulations of cells. If most of your clusters have poor Silhouette score, it may indicate a poor quality of your experiments. 
+Silhouette method is used to interprate and validate the consistency within clusters defined in previous steps. A poor Silhouette (e.g. average si $<$ 0.2 ) score indicates that the experiments(if not properly done) may not separate well the subpopulations of cells. If most of your clusters have poor Silhouette score, it may indicates a poor quality of your experiments. 
 \end{quotation}
 \\begin{figure}[h]
         \caption{Silhouette score for clustered STAMPs} \label{fig:profileunion}
@@ -392,12 +392,12 @@ Cell Clustering tree and peak region in each cell. The upper panel represents th
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{ideogram}
+\subsection{Ideogram}
 \\begin{quotation}
 Cluster specific regions were show in each chromsome.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{ideogram of cluster specific regions} \label{fig:profileunion}
+        \caption{Ideogram of cluster specific regions} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
@@ -615,8 +615,11 @@ def main():
     LogCommand(cmd,logfile)
     cmd = """gunzip %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig.gz""" %(outname,outname)
     LogCommand(cmd,logfile)
-    cmd = """ceas -w %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig -b %s_peaks.bed -g %s --name %s_ceas""" %(outname,outname,outname,geneannotation,outname)
-    LogCommand(cmd,logfile)
+    try:
+        cmd = """ceas -w %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig -b %s_peaks.bed -g %s --name %s_ceas""" %(outname,outname,outname,geneannotation,outname)
+        LogCommand(cmd,logfile)
+    except:
+        LogError("Run CEAS failed, please check your input and ceas annotation file.",logfile)
     step2time = time.time() - t
     Log("[STEP2] running time for bulk-cell level QC: %ss"%(step2time),logfile)
     

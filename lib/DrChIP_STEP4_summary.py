@@ -234,7 +234,7 @@ Distribution of GC content of each read. This module measures the general qualit
 \\newpage
 \\newpage
 \section{Bulk-cell level QC}
-In the bulk-cell level QC step we measured the performance of total Drop-ChIP reads. In this step we did't separate reads, just like treated the sample as bulk ChIP-seq sample.
+In the bulk-cell level QC step we measured the performance of total Drop-ChIP reads. In this step we did't separate reads, just like treated the sample as a bulk ChIP-seq sample.
 \\newpage
 \\newpage
 \subsection{Reads alignment summary}
@@ -304,12 +304,12 @@ Barplot show ChIP regions distributed over the genome along with their scores or
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{average profile on different genome regions}
+\subsection{Average profile on different genome regions}
 \\begin{quotation}
 Average profiling within/near important genomic features. The panels on the first row display the average ChIP enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average ChIP signals on the meta-gene of 3 kb.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{average profile on different genome regions} \label{fig:profileunion}
+        \caption{Average profile on different genome regions} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
@@ -326,7 +326,7 @@ In this step we focused on the quality of individual cell and distinguishing cel
 \\newpage
 \subsection{Reads distribution}
 \\begin{quotation}
-Drop-ChIP technology has an innate advantage of detecting individual cell reads and background reads due to the barcode information. This module displays the distribution of reads number in each cell and helps to discard barcodes with high rate of background reads (which usually caused by empty cell barcodes and ambient sequence). We plot the distribution of reads number in each cell barcode (though most of cell barcodes don't contain cells, they still have reads) and observed a bimodal distribution of reads number. The red line show the reads distribution. 
+Drop-ChIP technology has an innate advantage of detecting individual cell reads and background reads due to the barcode information. This module displays the distribution of reads number in each cell and helps to discard barcodes with high rate of background reads (which usually caused by empty cell barcodes and ambient sequence). We plot the distribution of reads number in each cell barcode (though most of cell barcodes don't contain cells, they still have reads) and observed a bimodal distribution of reads number. The red line shows the reads distribution. 
 \end{quotation}
 \\begin{figure}[h]
         \caption{Reads distribution} \label{fig:profileunion}
@@ -362,7 +362,7 @@ We conducted a h-cluster based on macs14 peaks to measure sample's ability to be
 \\newpage
 \subsection{Silhouette of clustering}
 \\begin{quotation}
-Silhouette method is used to interprate and validate the consistency within clusters defined in previous steps. A poor Silhouette (e.g. average si $<$ 0.2 ) score indicate that the experiments(if not properly done) may not separate well the subpopulations of cells. If most of your clusters have poor Silhouette score, it may indicate a poor quality of your experiments. 
+Silhouette method is used to interprate and validate the consistency within clusters defined in previous steps. A poor Silhouette (e.g. average si $<$ 0.2 ) score indicates that the experiments(if not properly done) may not separate well the subpopulations of cells. If most of your clusters have poor Silhouette score, it may indicate a poor quality of your experiments. 
 \end{quotation}
 \\begin{figure}[h]
         \caption{Silhouette score for clustered STAMPs} \label{fig:profileunion}
@@ -391,12 +391,12 @@ Cell Clustering tree and peak region in each cell. The upper panel represents th
     QCdoc += """
 \\newpage
 \\newpage
-\subsection{ideogram}
+\subsection{Ideogram}
 \\begin{quotation}
 Cluster specific regions were show in each chromsome.
 \end{quotation}
 \\begin{figure}[h]
-        \caption{ideogram of cluster specific regions} \label{fig:profileunion}
+        \caption{Ideogram of cluster specific regions} \label{fig:profileunion}
         \setlength{\\abovecaptionskip}{0pt}
         \setlength{\\belowcaptionskip}{10pt}
         \centering
