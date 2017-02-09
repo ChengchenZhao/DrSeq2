@@ -81,12 +81,12 @@ Here, we provide an example of our simple mode on combined published scATAC-seq 
 ```shell
 $ ATAC -i DrSeq2_scATAC -o scATAC -g hs --layout pair --geneannotation /PATHtoRefGene/hg19.refGene --cell_cutoff 5 --peak_cutoff 5 -C 3
 ```
-# For a brief description of major parameters, see the Manual section for more information
-# -i input mapped reads file of single cell ATAC-seq. Sam/Bam files are supported,multiple files should seperate by comma.This parameter is required. 
-# -o output name.This parameter is required.Default is 'out'. 
-# -g genome_type for effective genome size. It can be shortcuts:'hs' for human (2.7e9), 'mm' for mouse (1.87e9) Default:hs 
-# --layout pair-end sequencing or single-end sequencing.'pair' strands for pair-end sequencing.'single' strands for single-end sequencing. 
-# --geneannotation gene annotation file for CEAS. 
-# --cell_cutoff discard the peaks containing cells less than 
-# --peak_cutoff discard the cells containing peaks less than 
-# -C Given cluster numbers. DEFAULT: 3. 
+For a brief description of major parameters, see the Manual section for more information
+-i input mapped reads file of single cell ATAC-seq. Sam/Bam files are supported,multiple files should seperate by comma.This parameter is required. 
+-o output name.This parameter is required.Default is 'out'. 
+-g genome_type for effective genome size. It can be shortcuts:'hs' for human (2.7e9), 'mm' for mouse (1.87e9) Default:hs 
+--layout pair-end sequencing or single-end sequencing.'pair' strands for pair-end sequencing.'single' strands for single-end sequencing. 
+--geneannotation gene annotation file for CEAS. 
+--cell_cutoff discard the peaks containing cells less than 
+--peak_cutoff discard the cells containing peaks less than 
+-C Given cluster numbers. DEFAULT: 3. 
