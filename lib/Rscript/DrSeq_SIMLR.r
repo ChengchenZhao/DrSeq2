@@ -99,22 +99,36 @@ selct_high_var_gene <- function(inputdata,highvarZ){
 }
 
 # ref functions
+# givenK_kmeans <- function(indata,SD,Knum,clusterplot){
+#     set.seed(SD)
+#     pdf(file=clusterplot)
+#     x_lim <- c(quantile(indata[,1],0.01),quantile(indata[,1],0.99))
+#     y_lim <- c(quantile(indata[,2],0.01),quantile(indata[,2],0.99))
+#     tmp_indata <- indata[indata[,1]<x_lim[2]&indata[,1]>x_lim[1]&indata[,2]<y_lim[2]&indata[,2]>y_lim[1],]
+#     km <- kmeans(tmp_indata,Knum)
+#     plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""),xlim=x_lim,ylim=y_lim)
+#     rain <- rainbow(length(km$size))
+#     for( i in 1:length(km$size)){
+#         points(tmp_indata[which(km$cluster==i),],col=rain[i],pch=16)    
+#     }
+#     text(km$centers,labels=seq(nrow(km$centers)))
+#     dev.off()
+#     cluster_result <- cbind(tmp_indata,km$cluster)
+#     rownames(cluster_result) <- row.names(tmp_indata)
+#     return(cluster_result)
+# }
 givenK_kmeans <- function(indata,SD,Knum,clusterplot){
     set.seed(SD)
     pdf(file=clusterplot)
-    x_lim <- c(quantile(indata[,1],0.01),quantile(indata[,1],0.99))
-    y_lim <- c(quantile(indata[,2],0.01),quantile(indata[,2],0.99))
-    tmp_indata <- indata[indata[,1]<x_lim[2]&indata[,1]>x_lim[1]&indata[,2]<y_lim[2]&indata[,2]>y_lim[1],]
-    km <- kmeans(tmp_indata,Knum)
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    km <- kmeans(indata,Knum)
+    plot(indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""))
     rain <- rainbow(length(km$size))
     for( i in 1:length(km$size)){
-        points(tmp_indata[which(km$cluster==i),],col=rain[i],pch=16)    
+        points(indata[which(km$cluster==i),],col=rain[i],pch=16)    
     }
     text(km$centers,labels=seq(nrow(km$centers)))
     dev.off()
-    cluster_result <- cbind(tmp_indata,km$cluster)
-    rownames(cluster_result) <- row.names(tmp_indata)
+    cluster_result <- cbind(indata,km$cluster)
     return(cluster_result)
 }
 givenE_dbscan <- function(indata,EPS,clusterplot){
@@ -242,7 +256,7 @@ covered_gene_number <- apply(Rdata,2,getcoverGnum)
 highvargene <- selct_high_var_gene(Ndata,hvZ)
 
 maxKnum <- min(maxKnum, ncol(Rdata) - 21)
-tmp_data <- Rdata[highvargene,which(covered_gene_number > 2000)]
+tmp_data <- Rdata[highvargene,]
 SIMLR_res = SIMLR(X=tmp_data,c=custom_k)
 # Dimension reduction ressult : SIMLR_res$ydata
 
@@ -259,10 +273,57 @@ if (clustering_method == 4){
     KNUM <- custom_k
     final_result <- givenK_kmeans(SIMLR_res$ydata,RDnumber,KNUM,cluster_plot)
 }
+
+SpecificGeneScore <- function(in_group,out_group){
+    in_group <- as.numeric(in_group)
+    out_group <- as.numeric(out_group)
+    in_mean <- mean(in_group)
+    in_var <- var(in_group)
+    out_mean <- mean(out_group)
+    out_var <- var(out_group)
+    if (out_mean == 0){
+        if(in_mean == 0){
+            return(0)
+        }
+        else{
+            if (in_var == 0){
+                in_var <- var(c(in_group[1]+1,in_group[2:length(in_group)]))
+            }
+            return((in_mean^2)/in_var)
+        }
+    }
+    else{
+        if (out_var == 0){
+            out_var <- var(c(out_group[1]+1,out_group[2:length(out_group)]))
+        }
+        if (in_var == 0){
+            in_var <- var(c(in_group[1]+1,in_group[2:length(in_group)]))
+        }
+        return((in_mean^2)/(in_var*out_mean^2*out_var))
+    }
+}
+ClusterSpecificGene <- function(Rdata,highvargene,final_result,outname){
+    for (each_cluster in unique(final_result[,3])){
+        if (length(which(final_result[,3]!=each_cluster)) >= 3 & length(which(final_result[,3]==each_cluster)) >= 3){
+            in_group <- Rdata[highvargene,which(final_result[,3]==each_cluster)]
+            out_group <- Rdata[highvargene,which(final_result[,3]!=each_cluster)]
+            all_genes <- highvargene
+            all_score <- c()
+            for (each_gene in all_genes){
+                tmp_score <- SpecificGeneScore(in_group[each_gene,],out_group[each_gene,])
+                all_score <- c(all_score,tmp_score)
+            }
+            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(100,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
+        }
+    }
+}
+ClusterSpecificGene(Rdata,highvargene,final_result,outname)
+
 row.names(final_result) <- colnames(tmp_data)
 if (clustering_method == 4){
     colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","dbscan_cluster")
 }else{
     colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","kmeans_cluster")
 }
+
 write.table(final_result,file=paste(outname,'_cluster.txt',sep=""),row.names=T,col.names=T,sep="\t",quote=F)
