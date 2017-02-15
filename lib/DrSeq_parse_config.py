@@ -49,7 +49,7 @@ def read_conf(conf_file):
 ### generate a config file in simple mode
 #        make_conf(args.barcode,args.reads,args.name,args.fover,args.CBL,args.UMIL,args.RF,args.P)
 
-def make_conf(barcode_file,reads_file,outname,fover,cellbarcodeL,umiL,geneanno,P,mapindex,checkmem,maptool,select_cell,remove_lowdup,dimensionreduction_method):
+def make_conf(barcode_file,reads_file,outname,fover,cellbarcodeL,umiL,geneanno,P,mapindex,checkmem,maptool,select_cell,remove_lowdup):
     inf = open(CONFIG_TEMPLATE)
     name = outname
     if os.path.isfile(name+'.conf') and  not fover :
@@ -73,8 +73,6 @@ def make_conf(barcode_file,reads_file,outname,fover,cellbarcodeL,umiL,geneanno,P
             newline = 'checkmem = ' + checkmem + '\n'
         elif line.startswith('mapping_software_main ='):
             newline = 'mapping_software_main = ' + maptool + '\n'
-        elif line.startswith('dimensionreduction_method ='):
-            newline = 'dimensionreduction_method = ' + dimensionreduction_method + '\n'   
         elif line.startswith('gene_annotation ='):
             if geneanno:
                 newline = 'gene_annotation = ' + geneanno + '\n'
