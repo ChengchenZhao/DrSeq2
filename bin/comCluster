@@ -42,7 +42,7 @@ def main():
     optparser.add_option("-i","--input_files",dest="input_files",type="string",help="input files containing gene expression per cell,multiple files should seperate by comma.This parameter is required.")
     optparser.add_option("-o","--output_name",dest="output_name",default='output',type="string",help="output name for summary files.This parameter is required.")
     optparser.add_option("-c","--clustering_method",dest="clustering_method",default=1,type="int",help="Method for cluster cells based on t-SNE output.This parameter is required.Choose from 1(default) ,2 ,3 and 4.1(default) : k-means, use Gap statistics followed by our 'first stable Gap' method to determine k;2 : k-means, but use Gap statistics followed by triditional 'Tibs2001SEmax'  method to determine k (Tibshirani et al (2001));3 : k-means with custom determined k, k value is defined in following parameter 'custom_k', this option is designed for users who know the number of subgroup of the drop-seq sample;4 : (make sure your R enviroment has library 'fpc' installed) Use dbscan as clustering method, the (eps) parameter is defined in following parameter 'custom_d'")
-    optparser.add_option("-d","--dimension_reduction_method",dest="dimension_reduction_method",default=1,type="int",help="Method of dimension reduction,1 strands for 't-SNE',2 strands for 'SIMLR',3 strands for 'ZIFA'.This parameter is required.Default is 1.")
+    optparser.add_option("-d","--dimension_reduction_method",dest="dimension_reduction_method",default=1,type="int",help="Method of dimension reduction,1 strands for 't-SNE',2 strands for 'SIMLR',3 strands for 'PCA'.This parameter is required.Default is 1.")
     optparser.add_option("-z","--highvar_z",dest="highvar_z",default=1.64,type="string",help="Z-score cutoff for highly variable genes selection.")
     optparser.add_option("-p","--select_pc_var",dest="select_pc_var",default=0.5,type="float",help="Select topN PC until they explain 50% (default is 0.5,  eg. 0.3 for 30% variance) of total variance.")
     optparser.add_option("--maxknum",dest="maxknum",default='100',type="string",help="Maximum k number for gap statistics, only take effect when clustering_method = 1 or 2.")
@@ -69,18 +69,12 @@ def main():
         print "Please Check your input.\n"
         optparser.print_help()
         sys.exit(0)
-    for each_file in input_files.split(","):
-        if not os.path.isfile(each_file):
-            print "Please Check your input file, this file %s is not available.\n"%each_file
-            sys.exit(0)
-    
-    
+
     start_dir = os.getcwd()+'/'
     CreateDirectory(output_name)
     analysisdir = start_dir + output_name + '/analysis/'
     CreateDirectory(analysisdir)
-    os.chdir(analysisdir)
-    
+
     conf_dict = {}
     conf_dict['General'] = {}
     conf_dict["Step4_Analysis"] = {}
@@ -107,6 +101,15 @@ def main():
     conf_dict['results']['cortable'] = analysisdir + conf_dict['General']['outname']+'_correlation_table.txt' 
     conf_dict['results']['features'] = analysisdir + conf_dict['General']['outname']+'_pctablefeatures_clustercell.txt'
     logfile = conf_dict['General']['outputdirectory']+'/progress_log.txt'
+
+    for each_file in input_files.split(","):
+        if not os.path.isfile(each_file):
+            print "Please Check your input file, this file %s is not available.\n"%each_file
+            sys.exit(0)
+        else:
+            LogCommand("cp %s %s"%(start_dir+each_file,analysisdir),logfile)
+        
+    os.chdir(analysisdir)
     
     Log('Input is expression table, Step1-alignment, Step2-ExpMat and Step3-QC are skipped.',logfile)
     Log('Step : Combine gene expression table in to one file for following clustering analysis',logfile)

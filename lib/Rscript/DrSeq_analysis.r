@@ -37,19 +37,15 @@ maxSE_decideK <- function(indata,SD,maxK,Gapplot){
 givenK_kmeans <- function(indata,SD,Knum,clusterplot){
     set.seed(SD)
     pdf(file=clusterplot)
-    x_lim <- c(quantile(indata[,1],0.01),quantile(indata[,1],0.99))
-    y_lim <- c(quantile(indata[,2],0.01),quantile(indata[,2],0.99))
-    tmp_indata <- indata[indata[,1]<x_lim[2]&indata[,1]>x_lim[1]&indata[,2]<y_lim[2]&indata[,2]>y_lim[1],]
-    km <- kmeans(tmp_indata,Knum)
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    km <- kmeans(indata,Knum)
+    plot(indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""))
     rain <- rainbow(length(km$size))
     for( i in 1:length(km$size)){
-        points(tmp_indata[which(km$cluster==i),],col=rain[i],pch=16)    
+        points(indata[which(km$cluster==i),],col=rain[i],pch=16)    
     }
     text(km$centers,labels=seq(nrow(km$centers)))
     dev.off()
-    cluster_result <- cbind(tmp_indata,km$cluster)
-    rownames(cluster_result) <- row.names(tmp_indata)
+    cluster_result <- cbind(indata,km$cluster)
     return(cluster_result)
 }
 
@@ -471,7 +467,7 @@ highvargene <- selct_high_var_gene(traindata,hvZ)
 maxKnum <- min(maxKnum, ncol(Rdata) -21)
 
 ### normalize data and conduct PCA
-indata <- traindata[highvargene,which(covered_gene_number > 1500)]
+indata <- traindata[highvargene,]
 PCAdata <- t(indata)
 PCAresult <- prcomp(PCAdata)
 
