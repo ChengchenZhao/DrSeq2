@@ -60,12 +60,12 @@ def step4_analysis(conf_dict,logfile):
         cmd = "%s %s %s %s %s %s %s %s %s %s %s %s"%('Rscript',conf_dict['rscript']+'DrSeq_SIMLR.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['rscript'])
         LogCommand(cmd,logfile)
     elif int(conf_dict["Step4_Analysis"]["dimensionreduction_method"]) == 3:
-        conf_dict['results']['pctable'] = analysisdir + conf_dict['General']['outname']+'_pctable.txt'
-        Log("Using SIMLR to ceducted the dimension.",logfile)
-        cmd = "%s %s %s %s %s %s %s %s %s %s %s %s"%('Rscript',conf_dict['rscript']+'DrSeq_PCA.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['rscript'])
+        Log("Using PCA to ceducted the dimension.",logfile)
+        cmd = "%s %s %s %s %s %s %s %s %s %s %s %s %s"%('Rscript',conf_dict['rscript']+'DrSeq_PCA.r',conf_dict['results']['expmatcc'],conf_dict['General']['outname'],conf_dict['Step4_Analysis']['highvarz'],conf_dict['Step4_Analysis']['rdnumber'],conf_dict['Step4_Analysis']['maxknum'],conf_dict['Step4_Analysis']['pctable'],conf_dict['Step4_Analysis']['cortable'],conf_dict['Step4_Analysis']['clustering_method'],conf_dict['Step4_Analysis']['custom_k'],conf_dict['Step4_Analysis']['custom_d'],conf_dict['rscript'])
         LogCommand(cmd,logfile)
+        conf_dict['results']['pctable'] = analysisdir + conf_dict['General']['outname']+'_pctable.txt'
     else:
-        Log("You can only choose the method of Dimentional reduction from t-SNE,SIMLR and ZIFA by now.!",logfile)
+        Log("You can only choose the method of Dimentional reduction from t-SNE,SIMLR and PCA by now.!",logfile)
     cmd = '%s %s %s %s %s'%('Rscript',conf_dict['rscript']+'DrSeq_post_analysis.r',conf_dict['Step4_Analysis']['clusterresult'],conf_dict['Step2_ExpMat']['qcmatcc'],conf_dict['General']['outname'])
 
 
