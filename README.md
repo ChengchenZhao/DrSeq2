@@ -88,6 +88,6 @@ For a brief description of major parameters, see the Manual section for more inf
 -g genome_type for effective genome size. It can be shortcuts:'hs' for human (2.7e9), 'mm' for mouse (1.87e9) Default:hs <br>
 --layout pair-end sequencing or single-end sequencing.'pair' strands for pair-end sequencing.'single' strands for single-end sequencing. <br>
 --geneannotation gene annotation file for CEAS. <br>
---cell_cutoff discard the peaks containing cells less than <br>
---peak_cutoff discard the cells containing peaks less than <br>
+--cell_cutoff discard the peaks containing cells less than cell_cutoff. <br>
+--peak_cutoff discard the cells containing peaks less than peak_cutoff. <br>
 -C Given cluster numbers. DEFAULT: 3. <br>
