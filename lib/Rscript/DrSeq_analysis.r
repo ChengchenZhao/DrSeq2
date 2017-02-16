@@ -115,7 +115,7 @@ ClusterSpecificGene <- function(Rdata,highvargene,final_result,outname){
                 tmp_score <- SpecificGeneScore(in_group[each_gene,],out_group[each_gene,])
                 all_score <- c(all_score,tmp_score)
             }
-            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(100,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
+            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(300,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
         }
     }
 }

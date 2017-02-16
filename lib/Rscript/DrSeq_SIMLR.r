@@ -121,7 +121,7 @@ givenK_kmeans <- function(indata,SD,Knum,clusterplot){
     set.seed(SD)
     pdf(file=clusterplot)
     km <- kmeans(indata,Knum)
-    plot(indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""))
+    plot(indata,pch=16,xlab="dimension 1",ylab="dimension 2",main=paste("k-means (k=", Knum, ")",sep=""))
     rain <- rainbow(length(km$size))
     for( i in 1:length(km$size)){
         points(indata[which(km$cluster==i),],col=rain[i],pch=16)    
@@ -139,7 +139,7 @@ givenE_dbscan <- function(indata,EPS,clusterplot){
     ds <- ref_dbscan(tmp_indata,eps=EPS)
     cluster_result <- cbind(tmp_indata,ds$cluster)
     kmsize <- sort(cluster_result[,3],decreasing=T)[1]
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    plot(tmp_indata,pch=16,xlab="dimension 1",ylab="dimension 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""),xlim=x_lim,ylim=y_lim)
     rain <- rainbow(kmsize)
     for(i in 1:kmsize){
         points(cluster_result[which(cluster_result[, 3]==i),1:2],col=rain[i],pch=16)
@@ -313,7 +313,7 @@ ClusterSpecificGene <- function(Rdata,highvargene,final_result,outname){
                 tmp_score <- SpecificGeneScore(in_group[each_gene,],out_group[each_gene,])
                 all_score <- c(all_score,tmp_score)
             }
-            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(100,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
+            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(300,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
         }
     }
 }
@@ -321,9 +321,9 @@ ClusterSpecificGene(Rdata,highvargene,final_result,outname)
 
 row.names(final_result) <- colnames(tmp_data)
 if (clustering_method == 4){
-    colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","dbscan_cluster")
+    colnames(final_result) <- c("dimension_d1","dimension_d2","dbscan_cluster")
 }else{
-    colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","kmeans_cluster")
+    colnames(final_result) <- c("dimension_d1","dimension_d2","kmeans_cluster")
 }
 
 write.table(final_result,file=paste(outname,'_cluster.txt',sep=""),row.names=T,col.names=T,sep="\t",quote=F)

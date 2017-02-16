@@ -1,15 +1,16 @@
 a<-commandArgs(T)
+
 inmatrix <- a[1]
 outname <- a[2]
 hvZ <- as.numeric(a[3])
 RDnumber <- as.numeric(a[4])
 maxKnum <- as.numeric(a[5])
-cortableY <- as.numeric(a[6])
-clustering_method <- as.numeric(a[7])
-custom_k <- as.numeric(a[8])
-custom_d <- as.numeric(a[9])
-R_dir <- a[10]
-
+pcatableY <- as.numeric(a[6])
+cortableY <- as.numeric(a[7])
+clustering_method <- as.numeric(a[8])
+custom_k <- as.numeric(a[9])
+custom_d <- as.numeric(a[10])
+R_dir <- a[11]
 
 ### internal function
 stable_gap_decideK <- function(indata,SD,maxK,Gapplot){
@@ -34,6 +35,7 @@ stable_gap_decideK <- function(indata,SD,maxK,Gapplot){
 
     return(Knum)
 }
+
 maxSE_decideK <- function(indata,SD,maxK,Gapplot){
     set.seed(SD)
     b <- clusGap(indata,kmeans,maxK)
@@ -50,22 +52,17 @@ maxSE_decideK <- function(indata,SD,maxK,Gapplot){
 givenK_kmeans <- function(indata,SD,Knum,clusterplot){
     set.seed(SD)
     pdf(file=clusterplot)
-    x_lim <- c(quantile(indata[,1],0.01),quantile(indata[,1],0.99))
-    y_lim <- c(quantile(indata[,2],0.01),quantile(indata[,2],0.99))
-    tmp_indata <- indata[indata[,1]<x_lim[2]&indata[,1]>x_lim[1]&indata[,2]<y_lim[2]&indata[,2]>y_lim[1],]
-    km <- kmeans(tmp_indata,Knum)
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("k-means (k=", Knum, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    km <- kmeans(indata,Knum)
+    plot(indata,pch=16,xlab="PC 1",ylab="PC 2",main=paste("k-means (k=", Knum, ")",sep=""))
     rain <- rainbow(length(km$size))
     for( i in 1:length(km$size)){
-	    points(tmp_indata[which(km$cluster==i),],col=rain[i],pch=16)	
+        points(indata[which(km$cluster==i),],col=rain[i],pch=16)    
     }
     text(km$centers,labels=seq(nrow(km$centers)))
     dev.off()
-    cluster_result <- cbind(tmp_indata,km$cluster)
-    rownames(cluster_result) <- row.names(tmp_indata)
+    cluster_result <- cbind(indata,km$cluster)
     return(cluster_result)
 }
-
 
 givenE_dbscan <- function(indata,EPS,clusterplot){
     pdf(file=clusterplot)
@@ -75,7 +72,7 @@ givenE_dbscan <- function(indata,EPS,clusterplot){
     ds <- ref_dbscan(tmp_indata,eps=EPS)
     cluster_result <- cbind(tmp_indata,ds$cluster)
     kmsize <- sort(cluster_result[,3],decreasing=T)[1]
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    plot(tmp_indata,pch=16,xlab="PC 1",ylab="PC 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""),xlim=x_lim,ylim=y_lim)
     rain <- rainbow(kmsize)
     for(i in 1:kmsize){
         points(cluster_result[which(cluster_result[, 3]==i),1:2],col=rain[i],pch=16)
@@ -132,7 +129,7 @@ ClusterSpecificGene <- function(Rdata,highvargene,final_result,outname){
                 tmp_score <- SpecificGeneScore(in_group[each_gene,],out_group[each_gene,])
                 all_score <- c(all_score,tmp_score)
             }
-            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(100,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
+            write.table(cbind(all_genes[order(all_score,decreasing=T)][1:min(300,length(highvargene))]),file=paste(outname,"_specific_genes_of_cell_cluster",each_cluster,sep=""),quote=F,row.names=F,col.names=F)
         }
     }
 }
@@ -464,7 +461,7 @@ highvargene <- selct_high_var_gene(traindata,hvZ)
 maxKnum <- min(maxKnum, ncol(Rdata) -21)
 
 ### normalize data and conduct PCA
-indata <- traindata[highvargene,which(covered_gene_number > 1500)]
+indata <- traindata[highvargene,]
 PCAdata <- t(indata)
 PCAresult <- prcomp(PCAdata)
 
@@ -492,6 +489,7 @@ if (clustering_method == 4){
         
         KNUM <- stable_gap_decideK(dr_result,RDnumber,maxKnum,gap_plot)
     }else if (clustering_method == 2){
+ 
         KNUM <- maxSE_decideK(dr_result,RDnumber,maxKnum,gap_plot)     
     }else{
         KNUM <- custom_k
@@ -501,9 +499,9 @@ if (clustering_method == 4){
 }
 
 if (clustering_method == 4){
-    colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","dbscan_cluster")
+    colnames(final_result) <- c("PC1","PC2","dbscan_cluster")
 }else{
-    colnames(final_result) <- c("t-SNE_d1","t-SNE_d2","kmeans_cluster")
+    colnames(final_result) <- c("PC1","PC2","kmeans_cluster")
 }
 write.table(final_result,file=paste(outname,'_cluster.txt',sep=""),row.names=T,col.names=T,sep="\t",quote=F)
 
