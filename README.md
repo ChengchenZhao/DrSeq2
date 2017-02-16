@@ -76,12 +76,13 @@ $ export PYTHONPATH=/home/lib/python2.6/site-packages:$PYTHONPATH
 $ export PATH=/home/bin:$PATH More detailed about MACS see MACS web page
 ```
 Step3 Run DrSeq2 on single cell ATAC-seq data
+-------------------------------------------------------------------------------------------------------------------------------------------
 You can run DrSeq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq(scATAC) datasets.
 Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255~GSM1596350,GSM1596735~GSM1596830 and GSM1597119~GSM1597214) and display DrSeq2 output in the following panel.
 ```shell
 $ ATAC -i DrSeq2_scATAC -o scATAC -g hs --layout pair --geneannotation /PATHtoRefGene/hg19.refGene --cell_cutoff 5 --peak_cutoff 5 -C 3
 ```
-For a brief description of major parameters, see the Manual section for more information
+For a brief description of major parameters, see the Manual section for more information.
 -i input mapped reads file of single cell ATAC-seq. Sam/Bam files are supported,multiple files should seperate by comma.This parameter is required. 
 -o output name.This parameter is required.Default is 'out'. 
 -g genome_type for effective genome size. It can be shortcuts:'hs' for human (2.7e9), 'mm' for mouse (1.87e9) Default:hs 
