@@ -519,6 +519,12 @@ def main():
         print "Please Check your input.\n"
         optparser.print_help()
         sys.exit(0)
+
+    try :
+        os.path.isfile(geneannotation)
+    except:
+        print "Gene annotation file %s can not be found. Please Check your input.\n"%geneannotation
+        sys.exit(0)
     
     start_dir = os.getcwd()+'/'
     outputdir = start_dir + outname
@@ -531,16 +537,15 @@ def main():
         input_file_dir = os.listdir(input_files)
         input_files_list = []
         for each in input_file_dir:
-            if each.endswith(".sam") or each.endswith(".bam"):
+            if each.endswith(".sam") or each.endswith(".bam") and not each.startswith("."):
                 input_files_list.append(input_files+"/"+each)
             else:
-                print "This file '%s' is not a sam file nor a bam file, ignored.\n"%each_file
+                print "This file '%s' is not a regular sam file nor a regular bam file, ignored.\n"%each
         if len(input_files_list) == 0:
             print "No sam or bam files found with you input option. Please Check your input files. \n"
-            sys.exit(0) 
     except:
         input_files_list = input_files.split(",")
-
+    
     if len(input_files_list) == 0:
         print "No sam or bam files found with you input option. Please Check your input files. \n"
         sys.exit(0) 
