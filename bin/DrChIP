@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# Time-stamp: 2016-06-29
+# Time-stamp: 2017-05-04
 # Author: Chenchen Zhao
 # Email: 1310780@tongji.edu.cn
 """
@@ -67,7 +67,7 @@ def parse_args():
     Read parameter 
     '''
     description = "Dr.ChIP -- a quality control and analysis pipeline for Drop-ChIP data"
-    parser = DrChIPParser(description = description, version = "Dr.ChIP 1.0.0 20160715")
+    parser = DrChIPParser(description = description, version = "DrChIP 2.1.0")
     sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
 
     ### generate config file

@@ -148,7 +148,7 @@ def main():
     #         scripts_list.append(script_dir+"bedClip")
 
     setup(name="DrSeq2pipe",
-          version="2.0.0",
+          version="2.1.0",
           description="DrSeq2 : a quality control and analysis pipeline for parallel single cell transcriptome and epigenome data",
           author='Chengchen Zhao',
           author_email='1310780@tongji.edu.cn',

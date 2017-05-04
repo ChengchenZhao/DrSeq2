@@ -75,10 +75,10 @@ $ python setup.py install --prefix /home/ # if you are not a root user
 $ export PYTHONPATH=/home/lib/python2.6/site-packages:$PYTHONPATH
 $ export PATH=/home/bin:$PATH More detailed about MACS see MACS web page
 ```
-Step3 Run DrSeq2 on single cell ATAC-seq data
+Step3.Run DrSeq2 on single cell ATAC-seq data
 -------------------------------------------------------------------------------------------------------------------------------------------
 You can run DrSeq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq(scATAC) datasets.
-Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255~GSM1596350,GSM1596735~GSM1596830 and GSM1597119~GSM1597214) and display DrSeq2 output in the following panel.
+Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255~GSM1596350, GSM1596735~GSM1596830 and GSM1597119~GSM1597214) and display DrSeq2 output in the following panel.
 ```shell
 $ ATAC -i DrSeq2_scATAC -o scATAC -g hs --layout pair --geneannotation /PATHtoRefGene/hg19.refGene --cell_cutoff 5 --peak_cutoff 5 -C 3
 ```

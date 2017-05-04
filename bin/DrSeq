@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Time-stamp: <2016-04-29 Shengen Hu>
-# Time-stamp: <2016-11-24 Chengchen Zhao>
+# Time-stamp: <2017-05-04 Chengchen Zhao>
 """
  <Dr.seq2: quality control and analysis for parallel single cell RNA seq>
     Copyright (C) <2016>  <Chengchen Zhao>
@@ -73,8 +73,8 @@ def parse_args():
     '''
     Read parameter 
     '''
-    description = "Dr.seq -- a quality control and analysis pipeline for droplet sequencing"
-    parser = ChiLinParser(description = description, version = "Dr.seq 1.1.3 20160817")
+    description = "DrSeq -- a quality control and analysis pipeline for single cell transcriptome data"
+    parser = ChiLinParser(description = description, version = "DrSeq 2.1.0")
     sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
 
     ### generate config file
