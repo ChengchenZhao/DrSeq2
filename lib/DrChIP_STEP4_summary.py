@@ -51,6 +51,8 @@ def CeasSelected(conf_dict,logfile):
                 tmp_out_info.write("pdf('%s_Figure6_GeneCover.pdf',height=10,width=10)\n"%conf_dict["General"]["outname"])
                 tmp_out_info.write(each)
                 figure_marker = 0
+            elif each.startswith("""plot(x, y,type="l",main="Average Gene Profile",xlab="Upstream (bp), """):
+                tmp_out_info.write("""plot(x, y,type="l",main="Average Gene Profile",xlab="Upstream (bp), Meta-gene, Downstream (bp)",ylab="Average Profile",col=c("#C8524D"),xaxt="s",yaxt="s",lwd=2)\n""")            
             elif each.startswith("layout(matrix(c(1, 2, 3, 3, 4, 5), 3, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))"):
                 tmp_out_info.write("layout(matrix(c(1, 2, 3, 3), 2, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))\n")
             elif each.startswith("par(mfrow=c(3, 2)"):
@@ -306,7 +308,7 @@ Barplot show ChIP regions distributed over the genome along with their scores or
 \\newpage
 \subsection{Average profile on different genome regions}
 \\begin{quotation}
-Average profiling within/near important genomic features. The panels on the first row display the average ChIP enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average ChIP signals on the meta-gene of 3 kb.
+Average profiling within/near important genomic features. The panels on the first row display the average ChIP enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average ChIP signals on the meta-gene of 5 kb.
 \end{quotation}
 \\begin{figure}[h]
         \caption{Average profile on different genome regions} \label{fig:profileunion}

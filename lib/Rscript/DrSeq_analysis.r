@@ -52,13 +52,11 @@ givenK_kmeans <- function(indata,SD,Knum,clusterplot){
 
 givenE_dbscan <- function(indata,EPS,clusterplot){
     pdf(file=clusterplot)
-    x_lim <- c(quantile(indata[,1],0.01),quantile(indata[,1],0.99))
-    y_lim <- c(quantile(indata[,2],0.01),quantile(indata[,2],0.99))
-    tmp_indata <- indata[indata[,1]<x_lim[2]&indata[,1]>x_lim[1]&indata[,2]<y_lim[2]&indata[,2]>y_lim[1],]
+    tmp_indata <- indata
     ds <- ref_dbscan(tmp_indata,eps=EPS)
     cluster_result <- cbind(tmp_indata,ds$cluster)
     kmsize <- sort(cluster_result[,3],decreasing=T)[1]
-    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""),xlim=x_lim,ylim=y_lim)
+    plot(tmp_indata,pch=16,xlab="t-SNE 1",ylab="t-SNE 2",main=paste("DBSCAN (eps=", EPS, ")",sep=""))
     rain <- rainbow(kmsize)
     for(i in 1:kmsize){
         points(cluster_result[which(cluster_result[, 3]==i),1:2],col=rain[i],pch=16)

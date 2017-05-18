@@ -109,6 +109,8 @@ def CeasSelected(conf_dict,logfile):
                 tmp_out_info.write("pdf('%s_Figure3_GeneCover.pdf',height=10,width=10)\n"%conf_dict["outname"])
                 tmp_out_info.write(each.replace("ChIP","Open"))
                 figure_marker = 0
+            elif each.startswith("""plot(x, y,type="l",main="Average Gene Profile",xlab="Upstream (bp), """):
+                tmp_out_info.write("""plot(x, y,type="l",main="Average Gene Profile",xlab="Upstream (bp), Meta-gene, Downstream (bp)",ylab="Average Profile",col=c("#C8524D"),xaxt="s",yaxt="s",lwd=2)\n""")
             elif each.startswith("layout(matrix(c(1, 2, 3, 3, 4, 5), 3, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))"):
                 tmp_out_info.write("layout(matrix(c(1, 2, 3, 3), 2, 2, byrow = TRUE),widths=c(1, 1),heights=c(1, 1, 1))\n")
             elif each.startswith("par(mfrow=c(3, 2)"):
@@ -119,7 +121,7 @@ def CeasSelected(conf_dict,logfile):
                 tmp_out_info.write(each.replace("ChIP","Open"))
     ceas_r_info.close()
     tmp_out_info.close()
-    os.chdir(conf_dict['analysisdir'])              
+    os.chdir(conf_dict['analysisdir'])
     LogCommand("Rscript "+conf_dict["outname"]+"_ceas_eachplot.R",logfile)
 
 def Summary(conf_dict,logfile):
@@ -291,7 +293,7 @@ Barplot show open regions distributed over the genome along with their scores or
 \\newpage
 \subsection{Average profile on different genome regions}
 \\begin{quotation}
-Average profiling within/near important genomic features. The panels on the first row display the average enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average signals on the meta-gene of 3 kb.
+Average profiling within/near important genomic features. The panels on the first row display the average enrichment signals around TSS and TTS of genes, respectively. The bottom panel represents the average signals on the meta-gene of 5 kb.
 \end{quotation}
 \\begin{figure}[h]
         \caption{Average profile on different genome regions} \label{fig:profileunion}

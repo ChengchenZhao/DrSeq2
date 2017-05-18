@@ -35,7 +35,7 @@ h <- hist(x, plot=FALSE,breaks=100)
 h$counts=h$counts/sum(h$counts)
 # plot(h,col="grey", main='Distribution of reads number per cell', xlab='Reads Number',xlim=c(0,6),ylim=c(0,1))
 # lines(density(x), col="green")
-plot(density(x), col="red", main='Distribution of reads number per cell', xlab='Reads Number',xlim=c(0,6),ylim=c(0,1),lwd=2)
+plot(density(x), col="red", main='Distribution of reads number per cell', xlab='Reads Number (log10)',xlim=c(0,6),ylim=c(0,1),lwd=2)
 
 # hist(x, freq = TRUE, breaks=200);
 # plot(density(x),col='red',main='Distribution of reads number per cell',xlab='Reads Number',xaxt='n',xlim=c(0,6),lwd=2)
