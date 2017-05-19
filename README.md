@@ -2,7 +2,7 @@
 
 Quality control and analysis pipeline for parallel single cell transcriptome and epigenome data
 
-By applying this pipeline, DrSeq2 take sequencing files as input and provides four groups of QC measurements for given data, including reads level, bulk-cell level, individual-cell level and cell-clustering level QC.
+By applying this pipeline, DrSeq2 takes sequencing files as input and provides four groups of QC measurements for given data, including reads level, bulk-cell level, individual-cell level and cell-clustering level QC.
 Here we provide an example to get you easily started on a linux/MacOS system with python and R installed. To run DrSeq2 with options specific to your data, you need to see Manual section for detailed usage.
 
 STEP1.Install pipeline
