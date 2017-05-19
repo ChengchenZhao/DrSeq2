@@ -10,11 +10,11 @@ STEP1.Install pipeline
 1. Make sure you have Python (version 2.7) and R (version 2.14.1 or higher) in a Linux or MacOS environment.
 2. Get Dr.seq 
 ```shell
-git clone https://github.com/ChengchenZhao/DrSeq2.0.git
+git clone https://github.com/ChengchenZhao/DrSeq2.git
 ```
 3. Install Dr.seq on your server/computer
 ```shell
-cd DrSeq2.0
+cd DrSeq2
 ```
 for root user
 ```shell
