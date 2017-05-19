@@ -37,7 +37,7 @@ If you see help manual, you have successfully installed DrSeq2.
 STEP2.Prepare annotation and required softwares
 -------------------------------------------------------------------------------------------------------------------------------------------
 1. Obtain gene annotation information for the species of your DrChIP data or ATAC-seq data. 
-We have provided a convenient link of pre-compiled gene annotation tables with genome background annotations for human (hg18) and mouse (mm9) data on our webpage.You can download annotation tables for other species from CEAS.(Skip 2 and 3 if you already have bowtie2 and bowtie2 index)
+We have provided a convenient link of pre-compiled gene annotation tables with genome background annotations for human (hg18) and mouse (mm9) data on our webpage.You can download annotation tables for other species from CEAS. (Skip 2 and 3 if you already have bowtie2 and bowtie2 index)
 (Skip 4 if you already have macs14 installed)
 2. Prepare the mapping software (We use bowtie2 for the quick start mode). 
 We have provided a convenient link to an executable version of bowtie2 for Linux and MacOS users at out webpage (otherwise you must download the full bowtie2 package and compile it yourself, see the Manual section): 
@@ -77,7 +77,7 @@ $ export PATH=/home/bin:$PATH More detailed about MACS see MACS web page
 ```
 Step3.Run DrSeq2 on single cell ATAC-seq data
 -------------------------------------------------------------------------------------------------------------------------------------------
-You can run DrSeq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq(scATAC) datasets.
+You can run DrSeq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq (scATAC) datasets.
 Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255-GSM1596350, GSM1596735-GSM1596830 and GSM1597119-GSM1597214) and display DrSeq2 output in the following panel.
 ```shell
 $ ATAC -i DrSeq2_scATAC -o scATAC -g hs --layout pair --geneannotation /PATHtoRefGene/hg19.refGene --cell_cutoff 5 --peak_cutoff 5 -C 3
