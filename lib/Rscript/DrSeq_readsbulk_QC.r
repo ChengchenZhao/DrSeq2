@@ -20,11 +20,11 @@ total= A_count + C_count + G_count + T_count
 ym=max(A_count/total,C_count/total,G_count/total,T_count/total) + 0.05
 yn=min(A_count/total,C_count/total,G_count/total,T_count/total)
 #pdf("test5m.NVC_plot.pdf")
-plot(position,A_count/total,type="o",pch=20,ylim=c(yn,ym),col="dark green",xlab="Position of Read",ylab="Nucleotide Frequency")
-lines(position,T_count/total,type="o",pch=20,col="red")
-lines(position,G_count/total,type="o",pch=20,col="blue")
-lines(position,C_count/total,type="o",pch=20,col="cyan")
-legend(40,ym,legend=c("A","T","G","C"),col=cccol,lwd=2,pch=20,text.col=cccol)
+plot(position,A_count/total,type="o",pch=20,ylim=c(yn,ym),col=cccol[1],xlab="Position of Read",ylab="Nucleotide Frequency")
+lines(position,T_count/total,type="o",pch=20,col=cccol[2])
+lines(position,G_count/total,type="o",pch=20,col=cccol[3])
+lines(position,C_count/total,type="o",pch=20,col=cccol[4])
+legend(40,ym,legend=c("A","T","G","C"),col=cccol,lwd=2,pch=20,text.col=cccol,bty="n")
 dev.off()
 
 
