@@ -1,18 +1,18 @@
-# DrSeq2.0
+# Dr.seq2
 
 Quality control and analysis pipeline for parallel single cell transcriptome and epigenome data
 
-By applying this pipeline, DrSeq2 takes sequencing files as input and provides four groups of QC measurements for given data, including reads level, bulk-cell level, individual-cell level and cell-clustering level QC.
-Here we provide an example to get you easily started on a linux/MacOS system with python and R installed. To run DrSeq2 with options specific to your data, you need to see Manual section for detailed usage.
+By applying this pipeline, Dr.seq2 takes sequencing files as input and provides four groups of QC measurements for given data, including reads level, bulk-cell level, individual-cell level and cell-clustering level QC.
+Here we provide an example to get you easily started on a linux/MacOS system with python and R installed. To run Dr.seq2 with options specific to your data, you need to see Manual section for detailed usage.
 
 STEP1.Install pipeline
 -------------------------------------------------------------------------------------------------------------------------------------------
 1. Make sure you have Python (version 2.7) and R (version 2.14.1 or higher) in a Linux or MacOS environment.
-2. Get Dr.seq 
+2. Get Dr.seq2 
 ```shell
 git clone https://github.com/ChengchenZhao/DrSeq2.git
 ```
-3. Install Dr.seq on your server/computer
+3. Install Dr.seq2 on your server/computer
 ```shell
 cd DrSeq2
 ```
@@ -20,19 +20,19 @@ for root user
 ```shell
 sudo python setup.py install
 ```
-If you are not a root user, DrSeq2 can be installed at a specific location with write permission.
+If you are not a root user, Dr.seq2 can be installed at a specific location with write permission.
 ```shell
 $ python setup.py install --prefix /home/DrSeq2    # here you can replace "/home/DrSeq2" with any location you want
 $ export PATH=/home/DrSeq2/bin:$PATH    # setup PATH, so that system knows where to find executable files
 $ export PYTHONPATH=/home/DrSeq2/lib/python2.7/site-packages:$PYTHONPATH    # setup PYTHONPATH, so that DrSeq2 knows where to import modules
 ```
-NOTE: To install DrSeq2 on MacOSX, users need to download and install Xcode beforehand.
-DrSeq2 may take several minutes for installation.
+NOTE: To install Dr.seq2 on MacOSX, users need to download and install Xcode beforehand.
+Dr.seq2 may take several minutes for installation.
 Type:
 ```shell
 $ DrSeq --help
 ```
-If you see help manual, you have successfully installed DrSeq2.
+If you see help manual, you have successfully installed Dr.seq2.
 
 STEP2.Prepare annotation and required softwares
 -------------------------------------------------------------------------------------------------------------------------------------------
@@ -65,7 +65,7 @@ to check the list of your default PATH
 We have provided a pre-built bowtie2 index at our webpage for a quick start. Downloading requires some time (you can build the bowtie2 index yourself if you are using a genome version other than hg19 or mm9, see the Manual section). 
 
 4. Prepare the peak calling software 
-we use macs14 for peak calling in DrSeq2 on Drop-ChIP data and single cell ATAC-seq data. You can download MACS14 from here.
+we use macs14 for peak calling in Dr.seq2 on Drop-ChIP data and single cell ATAC-seq data. You can download MACS14 from here.
 
 ```shell
 $ tar -zxvf MACS-1.4.2-1.tar.gz
@@ -75,10 +75,10 @@ $ python setup.py install --prefix /home/ # if you are not a root user
 $ export PYTHONPATH=/home/lib/python2.6/site-packages:$PYTHONPATH
 $ export PATH=/home/bin:$PATH More detailed about MACS see MACS web page
 ```
-Step3.Run DrSeq2 on single cell ATAC-seq data
+Step3.Run Dr.seq2 on single cell ATAC-seq data
 -------------------------------------------------------------------------------------------------------------------------------------------
-You can run DrSeq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq (scATAC) datasets.
-Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255-GSM1596350, GSM1596735-GSM1596830 and GSM1597119-GSM1597214) and display DrSeq2 output in the following panel.
+You can run Dr.seq2 pipeline to generate QC and analysis reports of your single cell ATAC-seq (scATAC) datasets.
+Here, we provide an example of our simple mode on combined published scATAC-seq datasets (GSM1596255-GSM1596350, GSM1596735-GSM1596830 and GSM1597119-GSM1597214) and display Dr.seq2 output in the following panel.
 ```shell
 $ ATAC -i DrSeq2_scATAC -o scATAC -g hs --layout pair --geneannotation /PATHtoRefGene/hg19.refGene --cell_cutoff 5 --peak_cutoff 5 -C 3
 ```
