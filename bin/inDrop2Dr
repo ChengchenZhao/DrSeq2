@@ -1,0 +1,32 @@
+#!/bin/python
+
+import os,sys
+
+def BarcodeCombination(old_b,bl):
+	new_b = "D"*(bl-len(old_b))+old_b
+	return new_b
+	
+def main():
+	if len(sys.argv) < 4:
+		print "[ERROR]: run inDrop2Dr using command like this: python inDrop2Dr inDrop_barcode.fastq inDrop_standard.fastq w1_sequence max_barcode1_length"
+		print "Transforming inDrop sequencing data format (with variable barcode length) to the standard input format of DrSeq2..."
+
+	input_info = open(sys.argv[1])
+	output_info = open(sys.argv[2],"w")
+	w1 = sys.argv[3]
+	bl = int(sys.argv[4])
+
+
+	for each in input_info:
+		if w1 in each:
+			each_list = each.split(w1)
+			old_b1 = each_list[0]
+			new_b1 = BarcodeCombination(old_b1,bl)
+			new_r1 = new_b1 + w1 + each_list[1]
+			output_info.write(new_r1)
+		else:
+			output_info.write(each)
+
+	input_info.close()
+	output_info.close()
+main()
