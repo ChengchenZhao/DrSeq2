@@ -74,7 +74,6 @@ def step5_summary(conf_dict,logfile):
 \\begin{document}
 \\title{QC and analysis reports for Drop-seq data : %s}
 
-\\vGetace{-1cm}
 \maketitle
 \\tableofcontents
 \\newpage

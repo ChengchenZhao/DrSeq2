@@ -74,7 +74,7 @@ def parse_args():
     Read parameter 
     '''
     description = "DrSeq -- a quality control and analysis pipeline for single cell transcriptome data"
-    parser = ChiLinParser(description = description, version = "DrSeq 2.1.0")
+    parser = ChiLinParser(description = description, version = "DrSeq 2.1.1")
     sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
 
     ### generate config file
@@ -93,7 +93,7 @@ def parse_args():
                              help = "remove intermediate result generated during Dr.seq,default is NO" )
     ### simple mode
     simple_parser = sub_parsers.add_parser("simple", help = "run Drseq using simple mode",
-                                         description = "(Run Drseq pipeline using simple mode/command line mode) Usage: Drseq.py -a barcode.fastq -b reads.fastq -n outname --maptool STAR -g mm10_refgenes.txt --mapindex /home/user/STAR_index")
+                                         description = "(Run Drseq pipeline using simple mode/command line mode) Usage: Drseq.py -a barcode.fastq -b reads.fastq -n outname --maptool HISAT2 -g mm10_refgenes.txt --mapindex /home/user/STAR_index")
     simple_parser.add_argument("-b","--barcode", dest = 'barcode',required = True,
                              help = "[required] barcode fastq file before any filtering step, only accept .fastq format" )
     simple_parser.add_argument("-r","--reads",dest='reads',required = True,
@@ -106,8 +106,8 @@ def parse_args():
                              help = "specify the length of your UMI , default is 13:20, 12(cellbarcode) + 8(umi) = 20 (barcodefastq)" )
     simple_parser.add_argument("-g","--gene_annotation",dest='GA', required = False,
                              help = "[required absolute path if you didn't specific it in template config file] gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
-    simple_parser.add_argument("--maptool",dest='maptool' , choices = ("STAR", "bowtie2"),default="STAR", 
-                             help = "choose mapping software for alignment, default is STAR, you can also choose bowtie2 as another option. mapping tool should corresponded to mapindex, STAR vs. STAR index, bowtie2 vs. bowtie2 index. Dr.seq will check your total memory if you choose STAR, becuse STAR consumes huge memory for mapping though fast. If you don't have 40G for total memory and choose STAR, Dr.seq will exit to protect your server/computer. you can also turn off the checkmem option to run STAR direclty" )
+    simple_parser.add_argument("--maptool",dest='maptool' , choices = ("STAR", "bowtie2","HISAT2"),default="HISAT2", 
+                             help = "choose mapping software for alignment, default is HISAT2, you can also choose bowtie2 or STAR as another option. mapping tool should corresponded to mapindex, STAR vs. STAR index, bowtie2 vs. bowtie2 index and HISAT2 vs. HISAT2 index. Dr.seq will check your total memory if you choose STAR, becuse STAR consumes huge memory for mapping though fast. If you don't have 40G for total memory and choose STAR, Dr.seq will exit to protect your server/computer. you can also turn off the checkmem option to run STAR direclty" )
     simple_parser.add_argument("--checkmem",dest='checkmem' , choices = ("0", "1"), default="1",
                              help = "(default is 1 (on), only take effect when maptool = STAR) Dr.seq will check your total memory (if turned on, set 1, default) to make sure its greater 40G if you choose STAR as mapping tool. We don't suggest to run STAR on Mac. You can turn off (set 0) this function if you prefer STAR regardless of your memory (which may cause crash down of your computer) " )
     simple_parser.add_argument("--mapindex",dest='mapindex',required = False,

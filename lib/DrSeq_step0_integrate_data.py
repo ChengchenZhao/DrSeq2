@@ -98,8 +98,16 @@ def step0_integrate_data(conf_dict,logfile):
 #               LogError("cannot find bowtie2 index folder : %s "%(indexdir),logfile)
             if not os.path.isfile(indexfile1):
                 LogError("cannot find bowtie2 index file : %s "%(indexfile1),logfile)
+        elif conf_dict['Step1_Mapping']['mapping_software_main'] == "HISAT2":
+            Log('use HISAT2 as alignment tools',logfile)
+#            conf_dict['Step1_Mapping']['mapindex'] = indexdir + conf_dict['General']['genome_version']
+            indexfile1 = conf_dict['Step1_Mapping']['mapindex']+'.1.ht2'
+#           if not os.path.isdir(indexdir):
+#               LogError("cannot find bowtie2 index folder : %s "%(indexdir),logfile)
+            if not os.path.isfile(indexfile1):
+                LogError("cannot find HISAT2 index file : %s "%(indexfile1),logfile)
         else:
-            LogError("alignment tools can only be STAR and bowtie2",logfile)
+            LogError("alignment tools can only be HISAT2, STAR and bowtie2",logfile)
 
 
     ### check options

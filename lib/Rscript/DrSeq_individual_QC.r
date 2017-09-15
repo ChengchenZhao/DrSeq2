@@ -137,22 +137,35 @@ dev.off()
 
 ### qc4 : intron rate,  following steps are all based on selected real cell  
 
-real_qcdata <- qcdata[cluster_cell_name,]
-real_expdata <- expdata[,cluster_cell_name]
+if (is.null(cluster_cell_name)){
+    print ("There is no cell passed your selection. Please try to lower the threshold and rerun Dr.seq2.")
 
-intron_exon_ratio <- (real_qcdata[,'intron']+1)/(real_qcdata[,'utr3']+real_qcdata[,'utr5']+real_qcdata[,'cds']+real_qcdata[,'intron']+1)
+    pdf(file=paste(outname,"_Figure9_intronrate.pdf",sep=""))
+    plot(1,type="n",xaxt="n",yaxt="n",bty="n",xlab="",ylab="",main="There is no cell passed your selection.\nPlease try to lower the threshold and rerun Dr.seq2.")
+    dev.off()
 
-pdf(file=paste(outname,"_Figure9_intronrate.pdf",sep=""))
-hist(intron_exon_ratio,n=200,border="blue",xlab="Intron rate",main="")
-dev.off()
+    pdf(file=paste(outname,"_Figure8_coverGN.pdf",sep=""))
+    plot(1,type="n",xaxt="n",yaxt="n",bty="n",xlab="",ylab="",main="There is no cell passed your selection.\nPlease try to lower the threshold and rerun Dr.seq2.")
+    dev.off()
 
-###  qc5 cover gene number distribution
-pdf(file=paste(outname,"_Figure8_coverGN.pdf",sep=""))
-hist(log10(coverGN[cluster_cell_name]),border="blue",n=200,main='',xlab="log10 #covered genes")
-dev.off()
+}else{
+    real_qcdata <- qcdata[cluster_cell_name,]
+    real_expdata <- expdata[,cluster_cell_name]
 
-### output 
+    intron_exon_ratio <- (real_qcdata[,'intron']+1)/(real_qcdata[,'utr3']+real_qcdata[,'utr5']+real_qcdata[,'cds']+real_qcdata[,'intron']+1)
 
-write.table(real_qcdata,file=cluster_qcdata,row.names=T,col.names=T,sep="\t",quote=F)
-write.table(real_expdata,file=cluster_expdata,row.names=T,col.names=T,sep="\t",quote=F)
+    pdf(file=paste(outname,"_Figure9_intronrate.pdf",sep=""))
+    hist(intron_exon_ratio,n=200,border="blue",xlab="Intron rate",main="")
+    dev.off()
+
+    ###  qc5 cover gene number distribution
+    pdf(file=paste(outname,"_Figure8_coverGN.pdf",sep=""))
+    hist(log10(coverGN[cluster_cell_name]),border="blue",n=200,main='',xlab="log10 #covered genes")
+    dev.off()
+
+    ### output 
+
+    write.table(real_qcdata,file=cluster_qcdata,row.names=T,col.names=T,sep="\t",quote=F)
+    write.table(real_expdata,file=cluster_expdata,row.names=T,col.names=T,sep="\t",quote=F)    
+}
 

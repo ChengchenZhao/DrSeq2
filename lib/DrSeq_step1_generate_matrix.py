@@ -69,9 +69,16 @@ def step1_generate_matrix(conf_dict,logfile):
                 LogError('bowtie2 is not detected in default PATH, make sure you installed bowtie2 and export it into default PATH',logfile)
             mapping_cmd = 'bowtie2 -p %s -x %s -U %s -S %s.sam   2>&1 >>/dev/null |tee -a %s.bowtieout'%(conf_dict['Step1_Mapping']['mapping_p'],conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['reads_file'],conf_dict['General']['outname'],conf_dict['General']['outname'])
             LogCommand(mapping_cmd,logfile)
-            
+        
+        elif conf_dict["Step1_Mapping"]["mapping_software_main"] == "HISAT2":
+            Log('user choose HISAT2 as alignment software',logfile)
+            if Get('which hisat2')[0].strip() == "":
+                LogError('hisat2 is not detected in default PATH, make sure you installed hisat2 and export it into default PATH',logfile)
+            mapping_cmd = 'hisat2 -p %s -x %s -U %s -S %s.sam   2>&1 >>/dev/null |tee -a %s.hisat2out'%(conf_dict['Step1_Mapping']['mapping_p'],conf_dict['Step1_Mapping']['mapindex'],conf_dict['General']['reads_file'],conf_dict['General']['outname'],conf_dict['General']['outname'])
+            LogCommand(mapping_cmd,logfile)
+        
         else:
-            LogError("alignment tools can only be STAR and bowtie2",logfile)
+            LogError("alignment tools can only be HISAT2, STAR or bowtie2",logfile)
 
         conf_dict['General']['sam'] = mapping_dir + conf_dict['General']['outname'] + '.sam'
     ### transform to bed file, awk helps to conduct q30 filtering

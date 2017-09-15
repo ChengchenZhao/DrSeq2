@@ -638,18 +638,25 @@ def GenerateMatrix(refgene,inputbed,ttsdis,qcmatfull,qcmat,expmat,coverGNcutoff,
 
     last_cell = "NA"
     last_umi = "NA"
+    last_gname = []
+
     for line in inf:
         ll = line.strip().split()
         cell = ll[6]
         umi = ll[4]
-    
+        gname = ll[12].split(",")
+
         if not Expmat.has_key(cell):
             Expmat[cell] = {}
             QCmat[cell] = [0]*9# allreads,umi,cds,3utr,5utr,intron,intergenic,#greatertts400,covered gene number
     
+        share_gene = 0
+        for g in gname:
+            if g in last_gname:        
+                share_gene = 1
         QCmat[cell][0] += 1
         
-        if cell == last_cell and umi == last_umi and umi != "NA" : 
+        if cell == last_cell and umi == last_umi and umi != "NA" and share_gene == 1: 
             pass
         elif cell == last_cell and umi != "NA" and int(umidis1) == 1 and strdis(umi,lastumi) == 1 :
             pass
@@ -680,7 +687,8 @@ def GenerateMatrix(refgene,inputbed,ttsdis,qcmatfull,qcmat,expmat,coverGNcutoff,
         
         last_cell =  cell#ll[6]
         last_umi = umi#ll[4]
-    
+        last_gname = gname
+        
     inf.close()
     outf0 = open(qcmatfull,'w')
     outf1 = open(qcmat,'w')

@@ -111,7 +111,6 @@ def Step4Summary(conf_dict,logfile):
 \\begin{document}
 \\title{Dr.seq 2.0 QC and Analysis Summary Report: %s}
 
-\\vspace{-1cm}
 \maketitle
 \\tableofcontents
 \\newpage
