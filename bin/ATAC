@@ -448,7 +448,7 @@ summary QC report & %s \\\\
     outf = open(latexfile,'w')
     outf.write(QCdoc)
     outf.close()
-    cmd = "pdflatex %s"%(latexfile)
+    cmd = "pdflatex %s >/dev/null"%(latexfile)
     cmd2 = 'cp %s %s'%(conf_dict["outname"] + '_summary.pdf',summarydir)
     if conf_dict['latex'] == 1:
         LogCommand(cmd,logfile)
@@ -475,7 +475,7 @@ def main():
     ## define the options when we run this programing we needed
     usage = "usage: %prog -i <input_files> -o outname --layout -l length_filter -g genome_type -p pvalue -C cluster_number -c cut_height --qfilter  --geneannotation --cell_cutoff --peak_cutoff"
     description = "ATAC : clustering cells based on peaks"
-    optparser = OptionParser(version="%prog 2.1.1",description=description,usage=usage,add_help_option=False)
+    optparser = OptionParser(version="%prog 2.1.2",description=description,usage=usage,add_help_option=False)
     optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
     optparser.add_option("-i","--input_files",dest="input_files",type="string",help="input mapped reads file of single cell ATAC-seq. Directory that contains your Sam/Bam files show be input. multiple Sam/Bam files are also supported. These files should seperate by comma.This parameter is required.")
     optparser.add_option("-o","--outname",dest="outname",type="string",default='out',help="output name.This parameter is required.Default is 'out'.")
