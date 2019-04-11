@@ -617,7 +617,7 @@ def main():
     cmd = "Rscript %s %s %s"%(os.path.join(DrSeq2pipe.__path__[0], "Rscript/")+"ATAC_fragment_length.r","%s_fragments_length.txt"%outname,outname)
     LogCommand(cmd,logfile)
 
-    cmd = """macs14 -wS -t %s_noM.sam -n %s -g hs -p 1e-5 --keep-dup all --nomodel """ %(outname,outname)
+    cmd = """macs14 -wS -t %s_noM.sam -n %s -g hs -p %s --keep-dup all --nomodel """ %(outname,outname,pvalue)
     LogCommand(cmd,logfile)
     cmd = """gunzip %s_MACS_wiggle/treat/%s_treat_afterfiting_all.wig.gz""" %(outname,outname)
     LogCommand(cmd,logfile)
