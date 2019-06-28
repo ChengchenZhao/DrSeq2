@@ -448,7 +448,7 @@ summary QC report & %s \\\\
     outf = open(latexfile,'w')
     outf.write(QCdoc)
     outf.close()
-    cmd = "pdflatex %s >/dev/null"%(latexfile)
+    cmd = "pdflatex %s"%(latexfile)
     cmd2 = 'cp %s %s'%(conf_dict['General']['outname'] + '_summary.pdf',summarydir)
     if conf_dict['General']['latex'] == 1:
         LogCommand(cmd,logfile)

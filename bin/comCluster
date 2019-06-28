@@ -37,7 +37,7 @@ def main():
     ## define the options when we run this programing we needed
     usage = "usage: %prog -i <input_expression_files> -o output_name -c clustering_method -d dimension_reduction_method -z highvar_z -p select_pc_var --maxknum --custom_k --custom_d --rdnumber --cell  --seed"
     description = "comCluster : clustering for multiple expression matrix"
-    optparser = OptionParser(version="%prog 2.1.2",description=description,usage=usage,add_help_option=False)
+    optparser = OptionParser(version="%prog 0.1",description=description,usage=usage,add_help_option=False)
     optparser.add_option("-h","--help",action="help",help="Show this help message and exit.")
     optparser.add_option("-i","--input_files",dest="input_files",type="string",help="input files containing gene expression per cell,multiple files should seperate by comma.This parameter is required.")
     optparser.add_option("-o","--output_name",dest="output_name",default='output',type="string",help="output name for summary files.This parameter is required.")
@@ -107,7 +107,7 @@ def main():
             print "Please Check your input file, this file %s is not available.\n"%each_file
             sys.exit(0)
         else:
-            LogCommand("cp %s %s"%(each_file,analysisdir),logfile)
+            LogCommand("cp %s %s"%(start_dir+each_file,analysisdir),logfile)
         
     os.chdir(analysisdir)
     

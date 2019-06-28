@@ -363,7 +363,7 @@ qs.semicircle <- function (base.x, base.y, base.length, height = base.length,
 # download.file("http://hgdownload.soe.ucsc.edu/goldenPath/hg19/database/cytoBand.txt.gz",temp)
 cytobands <- read.table(cytoBandfile,sep="\t")
 
-pdf(paste(outname,"_Figure9_ideogram.pdf",sep=""),width=8,height=8)
+png(paste(outname,"_Figure9_ideogram.png",sep=""),width=8,height=8)
 prepareGenomePlot(paintCytobands=TRUE,organism=organism,sexChromosomes=F,units=cytobands)
 sample <- seq(k)
 cols <- rainbow(k,alpha = 0.5)
