@@ -105,7 +105,7 @@ def parse_args():
     simple_parser.add_argument("--umirange",dest='UMIR',  default='13:20', 
                              help = "specify the length of your UMI , default is 13:20, 12(cellbarcode) + 8(umi) = 20 (barcodefastq)" )
     simple_parser.add_argument("-g","--gene_annotation",dest='GA', required = False,
-                             help = "[required absolute path if you didn't specific it in template config file] gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
+                             help = "gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
     simple_parser.add_argument("--maptool",dest='maptool' , choices = ("STAR", "bowtie2","HISAT2"),default="HISAT2", 
                              help = "choose mapping software for alignment, default is HISAT2, you can also choose bowtie2 or STAR as another option. mapping tool should corresponded to mapindex, STAR vs. STAR index, bowtie2 vs. bowtie2 index and HISAT2 vs. HISAT2 index. Dr.seq will check your total memory if you choose STAR, becuse STAR consumes huge memory for mapping though fast. If you don't have 40G for total memory and choose STAR, Dr.seq will exit to protect your server/computer. you can also turn off the checkmem option to run STAR direclty" )
     simple_parser.add_argument("--checkmem",dest='checkmem' , choices = ("0", "1"), default="1",
@@ -173,8 +173,7 @@ def main():
         print 'ERROR: ~ cannot appeared in outname, current outname is %s'%(conf_dict['General']['outname'])
         sys.exit(1)
     if "~" in conf_dict['General']['outputdirectory']:
-        print 'ERROR: require absolute path for outputdirectory'
-        sys.exit(1)
+        conf_dict['General']['outputdirectory'] = os.path.expanduser(conf_dict['General']['outputdirectory'])
     if not conf_dict['General']['outputdirectory'].endswith('/'):
         conf_dict['General']['outputdirectory'] += '/'
     if not conf_dict['General']['outputdirectory'].startswith('/'):
