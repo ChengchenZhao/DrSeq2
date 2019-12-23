@@ -65,7 +65,7 @@ def step0_integrate_data(conf_dict,logfile):
     ### check gene annotation file
     if conf_dict['General']['gene_annotation'] == "":
         LogError("gene annotation file cannot be empty",logfile)
-    conf_dict['General']['gene_annotation'] = os.path.expanduseer(conf_dict['General']['gene_annotation']) 
+    conf_dict['General']['gene_annotation'] = os.path.expanduser(conf_dict['General']['gene_annotation']) 
     if not os.path.isfile(conf_dict['General']['gene_annotation'] ):
         LogError("cannot find gene annotation file : %s"%(conf_dict['General']['gene_annotation'] ),logfile)
         
