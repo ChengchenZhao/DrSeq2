@@ -33,9 +33,9 @@ def step0_integrate_data(conf_dict,logfile):
         LogError("outname is the name of all your output result, cannot contain "/", current outname is  %s"%(conf_dict['General']['outname']),logfile)
     ### check data path , format ,
     if "~" in conf_dict['General']['barcode_file']:
-        LogError('require absolute path for barcode file, barcode file cannot contain "~", current barcode file is %s'%(conf_dict['General']['barcode_file']),logfile)
+        conf_dict['General']['barcode_file'] = os.path.expanduser(conf_dict['General']['barcode_file'])
     if "~" in conf_dict['General']['reads_file']:
-        LogError('require absolute path for reads file, reads file cannot contain "~", current reads file is %s'%(conf_dict['General']['reads_file']),logfile)
+        conf_dict['General']['barcode_file'] = os.path.expanduser(conf_dict['General']['barcode_file'])
     if not conf_dict['General']['barcode_file'].startswith('/'):
         conf_dict['General']['barcode_file'] = conf_dict['General']['startdir'] + conf_dict['General']['barcode_file']
     if not conf_dict['General']['reads_file'].startswith('/'):
@@ -65,12 +65,12 @@ def step0_integrate_data(conf_dict,logfile):
     ### check gene annotation file
     if conf_dict['General']['gene_annotation'] == "":
         LogError("gene annotation file cannot be empty",logfile)
-    if not "/" in conf_dict['General']['gene_annotation'] : 
-        LogError("absolute path for gene annotation file required",logfile)        
+    conf_dict['General']['gene_annotation'] = os.path.expanduseer(conf_dict['General']['gene_annotation']) 
     if not os.path.isfile(conf_dict['General']['gene_annotation'] ):
         LogError("cannot find gene annotation file : %s"%(conf_dict['General']['gene_annotation'] ),logfile)
         
     ### mapping index
+    conf_dict['Step1_Mapping']['mapindex'] = os.path.expanduser(conf_dict['Step1_Mapping']['mapindex'])
     if conf_dict['General']['format'] == 'fastq':
 #        if not conf_dict['Step1_Mapping']['mapindex'].endswith("/"):
 #            conf_dict['Step1_Mapping']['mapindex'] += "/"

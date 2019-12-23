@@ -104,7 +104,7 @@ def parse_args():
     simple_parser.add_argument("-n","--name", dest="name",required = True,
                              help="[required] name of you config file and output dir, name only , no extension. The output files will be named like name.pdf, name.txt ... ")
     simple_parser.add_argument("-g","--gene_annotation",dest='GA', required = True,
-                             help = "[required absolute path if you didn't specific it in template config file] gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
+                             help = "gene annotation file, the annotation file can be download from UCSC, full annotation text format(see documents for detail), or users can download gene annotation file in hg38 and mm10 version from our homepage" )
     simple_parser.add_argument("-s","--species",dest='species', required = True,
                              help = "The species of the input data. By now, only 'mm' and 'hg' are acceptable. 'mm' : mouse.'hg': human." )
     simple_parser.add_argument("--maptool",dest='maptool' ,default="bowtie2", 
@@ -176,8 +176,7 @@ def main():
         print 'ERROR: ~ cannot appeared in outname, current outname is %s'%(conf_dict['General']['outname'])
         sys.exit(1)
     if "~" in conf_dict['General']['outputdirectory']:
-        print 'ERROR: require absolute path for outputdirectory'
-        sys.exit(1)
+        conf_dict['General']['outputdirectory'] = os.path.expanduser(conf_dict['General']['outputdirectory'])]
     if not conf_dict['General']['outputdirectory'].endswith('/'):
         conf_dict['General']['outputdirectory'] += '/'
     if not conf_dict['General']['outputdirectory'].startswith('/'):
