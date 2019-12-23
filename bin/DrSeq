@@ -74,7 +74,7 @@ def parse_args():
     Read parameter 
     '''
     description = "DrSeq -- a quality control and analysis pipeline for single cell transcriptome data"
-    parser = ChiLinParser(description = description, version = "DrSeq 2.1.2")
+    parser = ChiLinParser(description = description, version = "DrSeq 2.2.0")
     sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
 
     ### generate config file

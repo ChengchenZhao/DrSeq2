@@ -148,14 +148,14 @@ def main():
     #         scripts_list.append(script_dir+"bedClip")
 
     setup(name="DrSeq2pipe",
-          version="2.1.1",
+          version="2.2.0",
           description="DrSeq2 : a quality control and analysis pipeline for parallel single cell transcriptome and epigenome data",
           author='Chengchen Zhao',
           author_email='1310780@tongji.edu.cn',
           url='https://github.com/ChengchenZhao/DrSeq2.0.git',
           package_dir={'DrSeq2pipe' : 'lib'},
           packages=['DrSeq2pipe'],
-          package_data={'DrSeq2pipe': ['Config/*','Rscript/*',]},
+          package_data={'DrSeq2pipe': ['Config/*','Rscript/*','Data/*',]},
           scripts=scripts_list,
           classifiers=[
           'Development Status :: version1.0 finish',

@@ -309,7 +309,7 @@ ColorRamp <- colorRampPalette(c("#F2FAB0","red"), bias=1)(10000)   #color list
 ColorLevels <- seq(to=zmax,from=zmin, length=10000)   #number sequencemodGenes <- names(which(km$cluster==each))
 image(1:ncol(allPlotMatrix), 1:nrow(allPlotMatrix), t(allPlotMatrix), xaxt="n", yaxt="n", col=ColorRamp, xlab="", ylab="")
 image(ColorLevels,1,matrix(data=ColorLevels, nrow=length(ColorLevels),ncol=1),col=ColorRamp, xlab="",ylab="",cex.axis=2,xaxt="n",yaxt="n",useRaster=T)
-axis(side=1,c(zmin,round((zmax-zmin)/2,1),zmax),labels=c(round(zmin,2),round((zmax-zmin)/2,1),round(zmax,1)))
+axis(side=1,c(zmin,round((zmax+zmin)/2,1),zmax),labels=c(round(zmin,2),round((zmax+zmin)/2,1),round(zmax,1)))
 dev.off()
 
 for (i in seq(length(unique(mycl)))){
