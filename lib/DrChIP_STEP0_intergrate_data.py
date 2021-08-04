@@ -35,11 +35,11 @@ def Step0IntegrateData(conf_dict,logfile):
         LogError("outname is the name of all your output result, cannot contain "/", current outname is  %s"%(conf_dict['General']['outname']),logfile)
     ### check data path , format ,
     if "~" in conf_dict['General']['fastq_1']:
-        conf_dict['General']['fastq_1'] = os.path.expanduser(conf_dict['General']['fastq_1'])
+        LogError('require absolute path for fastq_1 file, cannot contain "~", current fastq_1 file is %s'%(conf_dict['General']['fastq_1']),logfile)
     if "~" in conf_dict['General']['fastq_2']:
-        conf_dict['General']['fastq_2'] = os.path.expanduser(conf_dict['General']['fastq_2'])
+        LogError('require absolute path for fastq_2 file, cannot contain "~", current fastq_2 file is %s'%(conf_dict['General']['fastq_2']),logfile)
     if "~" in conf_dict['General']['barcode_file']:
-        conf_dict['General']['barcode_file'] = os.path.expanduser(conf_dict['General']['barcode_file'])
+        LogError('require absolute path for barcode file, cannot contain "~", current barcode file is %s'%(conf_dict['General']['barcode']),logfile)
     if not conf_dict['General']['fastq_1'].startswith('/'):
         conf_dict['General']['fastq_1'] = conf_dict['General']['startdir'] + conf_dict['General']['fastq_1']
     if not conf_dict['General']['fastq_2'].startswith('/'):
@@ -68,12 +68,11 @@ def Step0IntegrateData(conf_dict,logfile):
     if conf_dict['General']['gene_annotation'] == "":
         LogError("gene annotation file cannot be empty",logfile)
     if not "/" in conf_dict['General']['gene_annotation'] : 
-        conf_dict['General']['gene_annotation'] = os.path.expanduser(conf_dict['General']['gene_annotation'])
+        LogError("absolute path for gene annotation file required",logfile)        
     if not os.path.isfile(conf_dict['General']['gene_annotation'] ):
         LogError("cannot find gene annotation file : %s"%(conf_dict['General']['gene_annotation'] ),logfile)
         
     ### mapping index
-    conf_dict['Step1_Mapping']['mapindex'] = os.path.expanduser(conf_dict['Step1_Mapping']['mapindex'])
     if conf_dict['General']['format'] == 'fastq':
         if conf_dict['Step1_Mapping']['mapping_software'] == "bowtie2":
             Log('use bowtie2 as alignment tools',logfile)
