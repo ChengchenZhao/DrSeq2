@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # Time-stamp: <2016-04-29 Shengen Hu>
 # Time-stamp: <2017-05-04 Chengchen Zhao>
 """
@@ -74,7 +74,7 @@ def parse_args():
     Read parameter 
     '''
     description = "DrSeq -- a quality control and analysis pipeline for single cell transcriptome data"
-    parser = ChiLinParser(description = description, version = "DrSeq 2.2.0")
+    parser = ChiLinParser(description = description, version = "DrSeq 2.2.1")
     sub_parsers = parser.add_subparsers(help = "sub-command help", dest = "sub_command")
 
     ### generate config file

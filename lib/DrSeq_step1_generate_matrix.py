@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 # ------------------------------------
 # Python Modual
@@ -124,11 +124,11 @@ def step1_generate_matrix(conf_dict,logfile):
     ### use bedtools(intersect function) to assign exon/intron/intergenic/overlapping gene  information to all reads
     ### sort according to name
     Log('add gene annotation on aligned bed file',logfile)
-    cmd1 = "bedtools intersect -a %s -b %s  -wo   | sort -k 4,4 - >  %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_symbol.bed',conf_dict['General']['outname']+'_on_symbol.bed')
-    cmd2 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_cds.bed',conf_dict['General']['outname']+'_on_cds.bed')
-    cmd3 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_3utr.bed',conf_dict['General']['outname']+'_on_3utr.bed')
-    cmd4 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_5utr.bed',conf_dict['General']['outname']+'_on_5utr.bed')
-    cmd5 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_TTSdis.bed',conf_dict['General']['outname']+'_on_TTSdis.bed')
+    cmd1 = "bedtools intersect -a %s -b %s  -wo | sort -k 4,4 --parallel=6 -T . -S 8%% - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_symbol.bed',conf_dict['General']['outname']+'_on_symbol.bed')
+    cmd2 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 --parallel=6 -T . -S 8%% - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_cds.bed',conf_dict['General']['outname']+'_on_cds.bed')
+    cmd3 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 --parallel=6 -T . -S 8%% - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_3utr.bed',conf_dict['General']['outname']+'_on_3utr.bed')
+    cmd4 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 --parallel=6 -T . -S 8%% - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_5utr.bed',conf_dict['General']['outname']+'_on_5utr.bed')
+    cmd5 = "bedtools intersect -a %s -b %s -c | sort -k 4,4 --parallel=6 -T . -S 8%% - > %s"%(conf_dict['General']['bed'],annotation_dir+conf_dict['General']['outname']+'_gene_anno_TTSdis.bed',conf_dict['General']['outname']+'_on_TTSdis.bed')
     LogCommand(cmd1,logfile)
     LogCommand(cmd2,logfile)
     LogCommand(cmd3,logfile)
@@ -144,7 +144,7 @@ def step1_generate_matrix(conf_dict,logfile):
         conf_dict['General']['barcode_reform'] = expdir + conf_dict['General']['outname'] + '_barcode_reform.txt'
         ReformBarcodeFastq(conf_dict['General']['barcode_file'],conf_dict['General']['barcode_reform'],conf_dict['General']['cell_barcode_range'],conf_dict['General']['umi_range'])
     ### sort according name
-    cmdsort = 'sort -k 1,1 %s > %s'%(conf_dict['General']['barcode_reform'],expdir + conf_dict['General']['outname'] + '_barcode_reform_sort.txt')
+    cmdsort = 'sort -k 1,1 --parallel=6 -T . -S 8%% %s > %s'%(conf_dict['General']['barcode_reform'],expdir + conf_dict['General']['outname'] + '_barcode_reform_sort.txt')
     LogCommand(cmdsort,logfile)
     conf_dict['General']['barcode_reform'] = expdir + conf_dict['General']['outname'] + '_barcode_reform_sort.txt'
     
@@ -153,7 +153,7 @@ def step1_generate_matrix(conf_dict,logfile):
     CombineReads(conf_dict['General']['barcode_reform'],conf_dict['General']['outname']+'_on_cds.bed',conf_dict['General']['outname']+'_on_3utr.bed',conf_dict['General']['outname']+'_on_5utr.bed',conf_dict['General']['outname']+'_on_symbol.bed',conf_dict['General']['outname']+'_on_TTSdis.bed',conf_dict['General']['outname']+ '_combined.bed',conf_dict['Step2_ExpMat']['duplicate_measure'])   
      
     ### sort combined file by umi+loci, for following duplicate detection
-    cmd6 = "sort -k 7,7 -k 5,5 %s > %s"%(conf_dict['General']['outname']+ '_combined.bed',conf_dict['General']['outname']+ '_combined_sort.bed')
+    cmd6 = "sort -k 7,7 -k 5,5 --parallel=6 -T . -S 8%% %s > %s"%(conf_dict['General']['outname']+ '_combined.bed',conf_dict['General']['outname']+ '_combined_sort.bed')
     LogCommand(cmd6,logfile)
     
     ### generate expression and QC matrix based on combined file
